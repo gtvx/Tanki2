@@ -1,0 +1,58 @@
+#ifndef VULKANDRAW_H
+#define VULKANDRAW_H
+
+#include <vulkan/vulkan.h>
+#include <memory>
+#include <QSize>
+#include "MaxConCurrentFrameCount.h"
+
+class Camera3D;
+class VertexBufferResource;
+class IndexBufferResource;
+class Object3D;
+class VulkanVertexBuffer;
+class VulkanIndexBuffer;
+class VulkanTextureBuffer;
+class BitmapTextureResource;
+class VulkanWindow;
+
+
+class TextureMaterialVulkan
+{
+    VkPipeline pipeline;
+    VkPipelineLayout pipelineLayout;
+    VkSampler m_sampler;
+
+    VkShaderModule shaderModule_vs;
+    VkShaderModule shaderModule_fs;
+
+    VkBuffer m_buf;
+    VkDeviceMemory m_bufMem;
+
+    VulkanTextureBuffer *vulkanTextureBuffer;
+
+    std::shared_ptr<BitmapTextureResource> textureResource;
+
+    VkDescriptorPool m_descPool;
+    VkDescriptorSetLayout m_descSetLayout;
+
+    VkDescriptorSet m_descSet[MAX_CONCURRENT_FRAME_COUNT];
+
+    VkPipelineCache pipelineCache;
+
+public:
+    TextureMaterialVulkan();
+    void drawOpaque(VulkanWindow *window,
+                    Camera3D *camera,
+                    VertexBufferResource *vertexBuffer,
+                    IndexBufferResource *indexBuffer,
+                    int firstIndex,
+                    int numTriangles,
+					Object3D *object,
+					bool decal);
+
+    void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
+
+};
+
+#endif // VULKANDRAW_H

@@ -1,0 +1,5 @@
+glslangValidator -V TextureMaterialVertex.vert -o build/TextureMaterialVertex.spv
+glslangValidator -V TextureMaterialFragment.frag -o build/TextureMaterialFragment.spv
+glslangValidator -V PaintVertex.vert -o build/PaintVertex.spv
+glslangValidator -V TrackMaterialVertex.vert -o build/TrackMaterialVertex.spv
+glslangValidator -V AnimatedPaintFragment.frag -o build/AnimatedPaintFragment.spv
