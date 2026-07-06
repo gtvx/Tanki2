@@ -16,7 +16,7 @@ class VulkanTextureBuffer;
 class BitmapTextureResource;
 class VulkanWindow;
 class BitmapData;
-
+class VulkanUniform;
 class DynamicChangeShader;
 
 
@@ -48,10 +48,6 @@ class PaintMaterialVulkan
 
     VkDescriptorSet m_descSet[MAX_CONCURRENT_FRAME_COUNT];
 
-	VkDeviceMemory m_bufMem = VK_NULL_HANDLE;
-	VkBuffer uniform_buffer;
-
-
 	DynamicChangeShader *dynamicChangeShader;
 
 
@@ -74,12 +70,9 @@ public:
                     Object3D *object,
                     float uvTransformConst[8],
 					float fragConst[8],
-					void *buffer = nullptr,
-					int buffer_size = 0);
+					VulkanUniform *vulkanUniform);
 
     void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
-
-	void update_uniform(VulkanWindow *window, const void *data, int size);
 };
 
 #endif // PAINTMATERIALVULKAN_H

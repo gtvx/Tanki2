@@ -218,7 +218,8 @@ void TextureMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   p->decal);
+					   p->decal,
+					   p->vulkanUniform);
 }
 
 
@@ -252,7 +253,8 @@ void TextureMaterial::drawTransparentVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   p->decal);
+					   p->decal,
+					   p->vulkanUniform);
 }
 
 

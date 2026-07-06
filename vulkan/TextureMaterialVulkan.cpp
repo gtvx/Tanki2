@@ -7,24 +7,31 @@
 #include "flash/display/BitmapData.h"
 #include "VulkanTextureBuffer.h"
 #include "hardware/alternativa/gfx/core/BitmapTextureResource.h"
+#include "hardware/alternativa/engine3d/objects/Decal.h"
 #include "VulkanFunctions.h"
 #include <QImage>
 #include "flash/display3D/VK_VertexBuffer3D.h"
 #include "flash/display3D/VK_IndexBuffer3D.h"
 #include "path.h"
+#include "VulkanUniform.h"
 #include <QDebug>
 
 
 
-#define CONST_TRANSFORM_OFFSET 0
+#define CONST_TRANSFORM_OFFSET 0 //c0 c1 c2
 #define CONST_TRANSFORM_SIZE 48
 
-#define CONST_PROJECTION_OFFSET 48
-#define CONST_PROJECTION_SIZE 32
+#define CONST_UV_CORRECTION_OFFSET 48 //c4
+#define CONST_UV_CORRECTION_SIZE 16
 
-#define CONST_COLOR_OFFSET 112
+#define CONST_UV_TRANSFORM_OFFSET 64 //c14 c15
+#define CONST_UV_TRANSFORM_SIZE 32
+
+#define CONST_COLOR_OFFSET 96 //fc0 fc1
 #define CONST_COLOR_SIZE 32
 
+#define CONST_DECAL_OFFSET 112
+#define CONST_DECAL_SIZE 32
 
 
 static VkPushConstantRange pushConstantRanges[] = {
@@ -35,13 +42,18 @@ static VkPushConstantRange pushConstantRanges[] = {
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_PROJECTION_OFFSET,
-		.size = CONST_PROJECTION_SIZE
+		.offset = CONST_UV_CORRECTION_OFFSET,
+		.size = CONST_UV_CORRECTION_SIZE
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.offset = CONST_COLOR_OFFSET,
 		.size = CONST_COLOR_SIZE
+	},
+	{
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		.offset = CONST_DECAL_OFFSET,
+		.size = CONST_DECAL_SIZE
 	}
 };
 
@@ -67,7 +79,8 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
                                        int firstIndex,
                                        int numTriangles,
 									   Object3D *object,
-									   bool decal)
+									   bool decal,
+									   VulkanUniform *vulkanUniform)
 {
     VulkanFunctions *m_devFuncs = window->getFunctions();
 
@@ -76,20 +89,19 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
     {
         VkDevice dev = window->device();
 
-        if (pipelineCache == VK_NULL_HANDLE)
-        {
-            VkPipelineCacheCreateInfo pipelineCacheInfo;
-            memset(&pipelineCacheInfo, 0, sizeof(pipelineCacheInfo));
-            pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-            VkResult err = m_devFuncs->vkCreatePipelineCache(dev, &pipelineCacheInfo, nullptr, &pipelineCache);
-            if (err != VK_SUCCESS)
-                qFatal("Failed to create pipeline cache: %d", err);
-
-        }
-
-
         if (pipeline == VK_NULL_HANDLE)
         {
+			if (pipelineCache == VK_NULL_HANDLE)
+			{
+				VkPipelineCacheCreateInfo pipelineCacheInfo;
+				memset(&pipelineCacheInfo, 0, sizeof(pipelineCacheInfo));
+				pipelineCacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+				VkResult err = m_devFuncs->vkCreatePipelineCache(dev, &pipelineCacheInfo, nullptr, &pipelineCache);
+				if (err != VK_SUCCESS)
+					qFatal("Failed to create pipeline cache: %d", err);
+
+			}
+
             if (vulkanTextureBuffer == nullptr)
             {
 				if (this->textureResource == nullptr)
@@ -114,8 +126,17 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
             }
 
-			shaderModule_vs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialVertex.spv");
-			shaderModule_fs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialFragment.spv");
+			if (decal == true)
+			{
+				shaderModule_vs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialVertexDecal.spv");
+				shaderModule_fs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialFragmentDecal.spv");
+			}
+			else
+			{
+				shaderModule_vs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialVertex.spv");
+				shaderModule_fs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialFragment.spv");
+			}
+
 
             VkResult err;
 
@@ -133,11 +154,9 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 						samplerInfo.magFilter = VK_FILTER_LINEAR;                    // плавная фильтрация при увеличении
 						samplerInfo.minFilter = VK_FILTER_LINEAR;                    // плавная при уменьшении
 						samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;      // линейная интерполяция мип-уровней
-
 						samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;  // повтор текстуры по U
 						samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;  // по V
 						samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
 						samplerInfo.mipLodBias = 0.0f;
 						samplerInfo.anisotropyEnable = VK_TRUE;                     // включить анизотропную фильтрацию
 						samplerInfo.maxAnisotropy = 8.0f;                           // 4-16 в зависимости от качества/производительности
@@ -147,12 +166,14 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 						samplerInfo.maxLod = VK_LOD_CLAMP_NONE;                     // или (float)maxMipLevels-1
 						samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // не используется для repeat
 						samplerInfo.unnormalizedCoordinates = VK_FALSE;             // обычно нормализованные UV (0..1)
-
 					}
 					else
 					{
 						samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 						samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+						samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+						samplerInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // не используется для repeat
+						samplerInfo.mipLodBias = 1.0f;
 						samplerInfo.anisotropyEnable = VK_FALSE;   // редко нужен для 2D overlay
 						samplerInfo.maxAnisotropy = 1.0f;
 						samplerInfo.minFilter = VK_FILTER_LINEAR;
@@ -161,7 +182,6 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 						samplerInfo.minLod = 0.0f;
 						samplerInfo.maxLod = 1.0f;                  // запретить выбор мипов если их нет
 						samplerInfo.unnormalizedCoordinates = VK_FALSE; // обычно нормализованные coords
-
 						samplerInfo.compareEnable = VK_TRUE;
 						samplerInfo.compareOp = VK_COMPARE_OP_EQUAL;
 					}
@@ -176,14 +196,15 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
                 {
                     // Set up descriptor set and its layout.
-                    VkDescriptorPoolSize descPoolSizes[2] = {
-                        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) }
+					VkDescriptorPoolSize descPoolSizes[2] = {
+						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
+						{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, uint32_t(concurrentFrameCount) }
                     };
                     VkDescriptorPoolCreateInfo descPoolInfo;
                     memset(&descPoolInfo, 0, sizeof(descPoolInfo));
                     descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-                    descPoolInfo.maxSets = concurrentFrameCount;
-                    descPoolInfo.poolSizeCount = 1;
+					descPoolInfo.maxSets = 2; //concurrentFrameCount
+					descPoolInfo.poolSizeCount = 2;
                     descPoolInfo.pPoolSizes = descPoolSizes;
                     err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
                     if (err != VK_SUCCESS)
@@ -191,7 +212,7 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
                 }
 
                 {
-                    VkDescriptorSetLayoutBinding layoutBinding[1] =
+					VkDescriptorSetLayoutBinding layoutBinding[2] =
                     {
                         {
                             1, // binding
@@ -199,14 +220,21 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
                             1, // descriptorCount
                             VK_SHADER_STAGE_FRAGMENT_BIT,
                             nullptr
-                        }
+						},
+						{
+							vulkanUniform->binding(), // binding
+							VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+							1, // descriptorCount
+							VK_SHADER_STAGE_VERTEX_BIT,
+							nullptr
+						}
                     };
 
                     VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
                         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                         nullptr,
                         0,
-                        1, // bindingCount
+						sizeof(layoutBinding) / sizeof(layoutBinding[0]), // bindingCount
                         layoutBinding
                     };
                     err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
@@ -228,7 +256,7 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
                     if (err != VK_SUCCESS)
                         qFatal("Failed to allocate descriptor 2 set: %d", err);
 
-                    VkWriteDescriptorSet descWrite[2];
+					VkWriteDescriptorSet descWrite[1];
                     memset(descWrite, 0, sizeof(descWrite));
 
                     VkDescriptorImageInfo descImageInfo = {
@@ -245,7 +273,27 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
                     descWrite[0].pImageInfo = &descImageInfo;
 
                     m_devFuncs->vkUpdateDescriptorSets(dev, 1, descWrite, 0, nullptr);
+
+
+					{
+						VkDescriptorBufferInfo vertUni;
+						vertUni.buffer = vulkanUniform->buffer();
+						vertUni.offset = 0;
+						vertUni.range = 1024;
+
+						VkWriteDescriptorSet descWrite;
+						memset(&descWrite, 0, sizeof(descWrite));
+						descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						descWrite.dstSet = m_descSet[i];
+						descWrite.dstBinding = vulkanUniform->binding();
+						descWrite.descriptorCount = 1;
+						descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+						descWrite.pBufferInfo = &vertUni;
+
+						m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
+					}
                 }
+
 
 
                 {
@@ -518,33 +566,52 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
     {
         VkCommandBuffer cb = window->currentCommandBuffer();
 
-        if (vulkanTextureBuffer != nullptr)
-        {
-            //vulkanTextureBuffer->ensureTexture(cb);
-        }
-
 
         m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_TRANSFORM_OFFSET, CONST_TRANSFORM_SIZE, object->transformConst);
 
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_PROJECTION_OFFSET, CONST_PROJECTION_SIZE, camera->projection);
+
+		float uvCorrection[4];
+		uvCorrection[0] = 1;
+		uvCorrection[1] = 1;
+		uvCorrection[2] = 0;
+		uvCorrection[3] = 0;
+
+		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_CORRECTION_OFFSET, CONST_UV_CORRECTION_SIZE, uvCorrection);
 
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_COLOR_OFFSET, CONST_COLOR_SIZE, object->colorConst);
 
-        m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                                            &m_descSet[window->currentFrame()], 0, nullptr);
+
+		if (decal == true)
+		{
+			float correctionConst[8];
+			correctionConst[0] = object->matrix4.md * camera->correctionX;
+			correctionConst[1] = object->matrix4.mh * camera->correctionY;
+			correctionConst[2] = object->matrix4.ml;
+			correctionConst[3] = camera->correctionX;
+			correctionConst[4] = (object->matrix4.mc * camera->correctionX) / ((Decal*)object)->attenuation;
+			correctionConst[5] = (object->matrix4.mg * camera->correctionY) / ((Decal*)object)->attenuation;
+			correctionConst[6] = object->matrix4.mk / ((Decal*)object)->attenuation;
+			correctionConst[7] = camera->correctionY;
+			m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_DECAL_OFFSET, CONST_DECAL_SIZE, correctionConst);
+		}
+
+
+		{
+			uint32_t pDynamicOffsets[1];
+			pDynamicOffsets[0] = 0;
+
+			m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descSet[window->currentFrame()], 1, pDynamicOffsets);
+		}
 
 
         VkBuffer buffer = vertexBuffer->vk_buffer->get();
+		VkBuffer buffer2 = vulkanUniform->buffer();
 
-        VkDeviceSize vbOffset = 0;
-        m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
-
-		if (indexBuffer != nullptr)
-		{
-			m_devFuncs->vkCmdBindIndexBuffer(cb, indexBuffer->vk_buffer->get(), 0, VK_INDEX_TYPE_UINT16);
-		}
+		VkDeviceSize vbOffset = 0;
+		m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
+		m_devFuncs->vkCmdBindVertexBuffers(cb, 1, 1, &buffer2, &vbOffset);
 
 
 		if (indexBuffer != nullptr)

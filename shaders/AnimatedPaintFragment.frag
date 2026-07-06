@@ -9,22 +9,25 @@ layout(binding = 6) uniform sampler2D sampler_6; //lightMapResource
 
 layout(location = 0) out vec4 fragColor;
 
-
+layout(std140, binding = 2) uniform buf {
+    vec4 c3; //0 0 projection
+    vec4 c17; //4 16 fragmentConst
+    vec4 c18; //8 32 fragmentConst
+    vec4 c254; //12 48
+} ubuf;
 
 layout(push_constant) uniform PC {
     vec4 c0; //0 transformConst
     vec4 c1; //16 transformConst
     vec4 c2; //32 transformConst
 
-    vec4 c3; //48 projection
+    vec4 c4; //48 uvCorrection
 
-    vec2 c4; //64 uvCorrection
+    vec4 c14; //64 uvTransformConst
+    vec4 c15; //80 uvTransformConst
 
-    vec4 c14; //80 uvTransformConst
-    vec4 c15; //96 uvTransformConst
-
-    vec4 fc23; //112 fragConst
-    vec4 fc24; //128 fragConst
+    vec4 fc23; //96 fragConst
+    vec4 fc24; //112 fragConst
 } pc;
 
 

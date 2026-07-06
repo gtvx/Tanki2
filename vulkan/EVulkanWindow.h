@@ -10,6 +10,7 @@ class EVulkanWindow : public QWindow, public VulkanWindow
 {
 protected:
 
+	virtual void initVulkan(VulkanWindow *vulkanWindow) = 0;
 	virtual void render(VulkanWindow *vulkanWindow) = 0;
 
 public:

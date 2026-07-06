@@ -14,6 +14,12 @@ VulkanWindow2::VulkanWindow2()
 }
 
 
+void VulkanWindow2::initVulkan(VulkanWindow *vulkanWindow)
+{
+	camera->initVulkan(vulkanWindow);
+}
+
+
 void VulkanWindow2::render(VulkanWindow *vulkanWindow)
 {
 	camera->renderVulkan(vulkanWindow);

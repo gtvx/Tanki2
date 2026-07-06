@@ -56,7 +56,7 @@ private:
 	void addGraphicEffect(GraphicEffect *effect) override;
 
 	MapBuilder *mapBuilder;
-	IBattleMap* battleMap;
+	IBattleMap *battleMap;
 	TextureMaterialRegistry *materialRegistry;
 	FollowCameraController *followCameraController;
 };

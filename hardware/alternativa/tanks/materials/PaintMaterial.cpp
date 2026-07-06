@@ -89,7 +89,8 @@ void PaintMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->numTriangles,
 					   p->object,
 					   this->uvTransformConst,
-					   this->fragConst);
+					   this->fragConst,
+					   p->vulkanUniform);
 }
 
 
@@ -123,8 +124,7 @@ void PaintMaterial::drawTransparentVulkan(DrawParams *p)
 					   p->object,
 					   this->uvTransformConst,
 					   this->fragConst,
-					   p->buffer,
-					   p->buffer_size);
+					   p->vulkanUniform);
 
 }
 

@@ -472,6 +472,7 @@ HEADERS += \
     vulkan/VK_createInstance.h \
     vulkan/VulkanFunctions.h \
     vulkan/VulkanTextureBuffer.h \
+    vulkan/VulkanUniform.h \
     vulkan/VulkanWindow.h \
     view/vulkan/VulkanWindow2.h \
     vulkan/shader.h
@@ -793,5 +794,6 @@ SOURCES += \
     vulkan/VulkanFunctions.cpp \
     vulkan/VulkanTextureBuffer.cpp \
     view/vulkan/VulkanWindow2.cpp \
+    vulkan/VulkanUniform.cpp \
     vulkan/shader.cpp
 

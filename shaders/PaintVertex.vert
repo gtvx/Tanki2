@@ -8,18 +8,25 @@ layout(location = 1) out vec2 oT6;
 
 out gl_PerVertex { vec4 gl_Position; };
 
+layout(std140, binding = 2) uniform buf {
+    vec4 c3; //0 0 projection
+    vec4 c17; //4 16 fragmentConst
+    vec4 c18; //8 32 fragmentConst
+    vec4 c254; //12 48
+} ubuf;
 
 layout(push_constant) uniform PC {
     vec4 c0; //0 transformConst
     vec4 c1; //16 transformConst
     vec4 c2; //32 transformConst
 
-    vec4 c3; //48 projection
+    vec4 c4; //48 uvCorrection
 
-    vec2 c4; //64 uvCorrection
+    vec4 c14; //64 uvTransformConst
+    vec4 c15; //80 uvTransformConst
 
-    vec4 c14; //80 uvTransformConst
-    vec4 c15; //96 uvTransformConst
+    vec4 fc0; //96 colorConst
+    vec4 fc1; //112 colorConst
 } pc;
 
 
@@ -31,7 +38,7 @@ void main()
     //mul(v0, va1, vc[4]);
     //mul oT0, v1, c4
 
-    oT0 = texcoord * pc.c4;
+    oT0 = texcoord.xy * pc.c4.xy;
 
 
     vec2 r1;
@@ -88,14 +95,12 @@ void main()
 
     //4
     //mul r0.z, r0, c3
-    r0.z = r0.z * pc.c3.z;
+    r0.z = r0.z * ubuf.c3.z;
 
     //5
     //add r12.z, r0, c3.w
-    r12.z = r0.z + pc.c3.w;
-
-    vec4 c254 = {0.00125, 0.00016667, 0, 0};
+    r12.z = r0.z + ubuf.c3.w;
 
     //6
-    gl_Position =  r12.w * c254 + r12;
+    gl_Position =  r12.w * ubuf.c254 + r12;
 }

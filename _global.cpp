@@ -1,5 +1,4 @@
 #include <cmath>
-
 #include <stdint.h>
 
 typedef union

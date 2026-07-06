@@ -18,6 +18,7 @@ class View;
 class ShadowMap;
 class Decal;
 class VectexNode;
+class VulkanUniform;
 
 
 class Camera3D : public Object3D
@@ -73,6 +74,7 @@ public:
 	double fov;
 
 	float projection[4];
+	float fragmentConst[8];
 
 	Matrix4 matrix_g;
 
@@ -107,6 +109,8 @@ public:
 	QVector<Object3D*> transparentBatchObjects;
 
 
+	VulkanUniform *vulkanUniform;
+
 
 	void renderVulkan(VulkanWindow *vulkanWindow);
 
@@ -130,7 +134,7 @@ public:
 	void addDecal(Decal *decal);
 
 
-
+	void initVulkan(VulkanWindow *vulkanWindow);
 
 protected:
 	void clonePropertiesFrom(const Object3D*) override;

@@ -1804,7 +1804,7 @@ void Mesh::draw(Camera3D *camera)
 
 	Shared<Face> _local_2;
 
-	if (1 || ((concatenatedAlpha >= 1) && (concatenatedBlendMode == "normal")))
+	if ((concatenatedAlpha >= 1) && (concatenatedBlendMode == "normal"))
 	{
 		this->addOpaque(camera);
 		_local_2 = this->transparentList;
@@ -1972,7 +1972,7 @@ void Mesh::prepareResources()
 
 		this->faceList = this->transparentList;
 		QVector<uint> _local_13;
-		int _local_14 = 0;
+		int index_count = 0;
 
 
 		QHashIterator<std::shared_ptr<Material>, Shared<Face>> iter(_local_12);
@@ -1995,28 +1995,32 @@ void Mesh::prepareResources()
 			Shared<Face> _local_8 = _local_16;
 			while (_local_8 != nullptr)
 			{
-				Weak<Wrapper> _local_11 = _local_8->wrapper;
-				int _local_5 = _local_11->vertex->index;
-				_local_11 = _local_11->next;
-				int _local_6 = _local_11->vertex->index;
-				_local_11 = _local_11->next;
-				while (_local_11 != nullptr)
+				Weak<Wrapper> wrapper;
+
+				wrapper = _local_8->wrapper;
+				int index_1 = wrapper->vertex->index;
+				wrapper = wrapper->next;
+				int index_2 = wrapper->vertex->index;
+				wrapper = wrapper->next;
+
+				while (wrapper != nullptr)
 				{
-					int _local_7 = _local_11->vertex->index;
-					_local_13.append(_local_5);
-					_local_14++;
-					_local_13.append(_local_6);
-					_local_14++;
-					_local_13.append(_local_7);
-					_local_14++;
-					_local_6 = _local_7;
+					int index_3 = wrapper->vertex->index;
+					_local_13.append(index_1);
+					_local_13.append(index_2);
+					_local_13.append(index_3);
+					index_count += 3;
+
+					index_2 = index_3;
 					this->numTriangles++;
-					_local_11 = _local_11->next;
+					wrapper = wrapper->next;
 				}
+
 				if (_local_8->next == nullptr)
 				{
 					_local_10 = _local_8;
 				}
+
 				_local_8 = _local_8->next;
 			}
 
@@ -2035,27 +2039,31 @@ void Mesh::prepareResources()
 
 		while (_local_8 != nullptr)
 		{
-			Weak<Wrapper> _local_11 = _local_8->wrapper;
-			int _local_5 = _local_11->vertex->index;
-			_local_11 = _local_11->next;
-			int _local_6 = _local_11->vertex->index;
-			_local_11 = _local_11->next;
-			while (_local_11 != nullptr)
+			Weak<Wrapper> wrapper;
+
+			wrapper = _local_8->wrapper;
+			int index_1 = wrapper->vertex->index;
+			wrapper = wrapper->next;
+			int index_2 = wrapper->vertex->index;
+			wrapper = wrapper->next;
+
+			while (wrapper != nullptr)
 			{
-				int _local_7 = _local_11->vertex->index;
-				_local_13.append(_local_5);
-				_local_14++;
-				_local_13.append(_local_6);
-				_local_14++;
-				_local_13.append(_local_7);
-				_local_14++;
-				_local_6 = _local_7;
+				int index_3 = wrapper->vertex->index;
+				_local_13.append(index_1);
+				_local_13.append(index_2);
+				_local_13.append(index_3);
+				index_count += 3;
+
+				index_2 = index_3;
 				this->numTriangles++;
-				_local_11 = _local_11->next;
+				wrapper = wrapper->next;
 			}
+
 			_local_8 = _local_8->next;
 		}
-		if (_local_14 > 0)
+
+		if (index_count > 0)
 		{
 			this->indexBuffer = new IndexBufferResource(_local_13);
 		}

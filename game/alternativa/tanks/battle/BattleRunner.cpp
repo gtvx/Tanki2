@@ -229,6 +229,10 @@ void BattleRunner::removeBodyWrapper(TankBody *tankBody)
 }
 
 
+
+
+
+//PhysicsController
 void BattleRunner::addPhysicsController(PhysicsController *controller)
 {
 	//qDebug() << "BattleRunner::addPhysicsController" << typeid(*controller).name();

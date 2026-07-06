@@ -6,6 +6,7 @@ class Camera3D;
 class VertexBufferResource;
 class IndexBufferResource;
 class Object3D;
+class VulkanUniform;
 
 class DrawParams
 {
@@ -17,10 +18,7 @@ public:
     int firstIndex;
     int numTriangles;
     Object3D *object;
-
-	void *buffer = nullptr;
-	int buffer_size = 0;
-
+	VulkanUniform *vulkanUniform;
 	bool decal = false;
 };
 

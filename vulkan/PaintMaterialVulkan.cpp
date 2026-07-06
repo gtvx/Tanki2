@@ -11,9 +11,10 @@
 #include "flash/display3D/VK_IndexBuffer3D.h"
 #include "VulkanFunctions.h"
 #include "path.h"
+#include "MyMath.h"
+#include "VulkanUniform.h"
 #include <QVulkanDeviceFunctions>
 #include <QImage>
-#include "MyMath.h"
 #include <QDebug>
 
 static const int details_binding = 1;
@@ -24,17 +25,14 @@ static const int lightMap_binding = 6;
 #define CONST_TRANSFORM_OFFSET 0
 #define CONST_TRANSFORM_SIZE 48
 
-#define CONST_PROJECTION_OFFSET 48
-#define CONST_PROJECTION_SIZE 32
-
-#define CONST_UV_CORRECTION_OFFSET 64
+#define CONST_UV_CORRECTION_OFFSET 48
 #define CONST_UV_CORRECTION_SIZE 16
 
-#define CONST_UV_TRANSFORM_OFFSET 80
-#define CONST_UV_TRANSFORM_SIZE 64
+#define CONST_UV_TRANSFORM_OFFSET 64
+#define CONST_UV_TRANSFORM_SIZE 32
 
-#define CONST_FRAG_OFFSET 112
-#define CONST_FRAG_SIZE 64
+#define CONST_FRAG_OFFSET 96
+#define CONST_FRAG_SIZE 32
 
 
 
@@ -46,8 +44,8 @@ static VkPushConstantRange pushConstantRanges[] = {
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_PROJECTION_OFFSET,
-		.size = CONST_PROJECTION_SIZE
+		.offset = CONST_UV_CORRECTION_OFFSET,
+		.size = CONST_UV_CORRECTION_SIZE
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
@@ -143,8 +141,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
                                      Object3D *object,
                                      float uvTransformConst[8],
 									 float fragConst[8],
-									 void *buffer,
-									 int buffer_size)
+									 VulkanUniform *vulkanUniform)
 {
     (void)camera;
 
@@ -203,51 +200,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
             VkResult err;
 
 
-			VkMemoryRequirements uniMemReq;
             {
-				uniform_buffer = VK_NULL_HANDLE;
-				{
-					VkBufferCreateInfo bufInfo;
-					memset(&bufInfo, 0, sizeof(bufInfo));
-					bufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-					bufInfo.size = 8 * 10;
-					bufInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-					VkResult err = m_devFuncs->vkCreateBuffer(dev, &bufInfo, nullptr, &uniform_buffer);
-					if (err != VK_SUCCESS)
-						qFatal("Failed to create vertex buffer: %d", err);
-
-					m_devFuncs->vkGetBufferMemoryRequirements(dev, uniform_buffer, &uniMemReq);
-
-				}
-
-				{
-					VkMemoryAllocateInfo memAllocInfo = {
-						VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-						nullptr,
-						uniMemReq.size,
-						window->hostVisibleMemoryIndex()
-					};
-
-
-
-					err = m_devFuncs->vkAllocateMemory(dev, &memAllocInfo, nullptr, &m_bufMem);
-
-					m_devFuncs->vkBindBufferMemory(dev, uniform_buffer, m_bufMem, 0);
-
-
-					quint8 *p;
-					VkResult err = m_devFuncs->vkMapMemory(dev, m_bufMem, 0, uniMemReq.size, 0,
-														   reinterpret_cast<void **>(&p));
-					if (err != VK_SUCCESS)
-						qFatal("Failed to map memory: %d", err);
-					memset(p, 0, uniMemReq.size);
-					m_devFuncs->vkUnmapMemory(dev, m_bufMem);
-				}
-
-
-
-
                 {
                     // Sampler.
                     VkSamplerCreateInfo samplerInfo;
@@ -305,7 +258,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
                     VkDescriptorPoolCreateInfo descPoolInfo;
                     memset(&descPoolInfo, 0, sizeof(descPoolInfo));
                     descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-					descPoolInfo.maxSets = concurrentFrameCount;
+					descPoolInfo.maxSets = 2; //concurrentFrameCount;
                     descPoolInfo.poolSizeCount = sizeof(descPoolSizes) / sizeof(descPoolSizes[0]);;
                     descPoolInfo.pPoolSizes = descPoolSizes;
                     err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
@@ -314,7 +267,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
                 }
 
                 {
-					VkDescriptorSetLayoutBinding layoutBinding[4] =
+					VkDescriptorSetLayoutBinding layoutBinding[] =
                     {
                         {
                             details_binding, // binding
@@ -341,22 +294,20 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
                             &m_sampler_lightMap
 						},
 
-
 						{
-							5, // binding
+							vulkanUniform->binding(), // binding
 							VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 							1, // descriptorCount
 							VK_SHADER_STAGE_VERTEX_BIT,
 							nullptr
-						},
-
+						}
                     };
 
                     VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
                         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                         nullptr,
                         0,
-						4, // bindingCount
+						sizeof(layoutBinding) / sizeof(layoutBinding[0]), // bindingCount
                         layoutBinding
                     };
 
@@ -422,26 +373,27 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
                     descWrite[2].pImageInfo = &descImageInfo_lightMap;
 
 
+					m_devFuncs->vkUpdateDescriptorSets(dev, 3, descWrite, 0, nullptr);
 
 
-					VkDescriptorBufferInfo buffer =
 					{
-						uniform_buffer,
-						0,
-						uniMemReq.size
-					};
+						VkDescriptorBufferInfo vertUni;
+						vertUni.buffer = vulkanUniform->buffer();
+						vertUni.offset = 0;
+						vertUni.range = 1024;
 
-					descWrite[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descWrite[3].dstSet = m_descSet[i];
-					descWrite[3].dstBinding = 5;
-					descWrite[3].descriptorCount = 1;
-					descWrite[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					descWrite[3].pBufferInfo = &buffer;
+						VkWriteDescriptorSet descWrite;
+						memset(&descWrite, 0, sizeof(descWrite));
+						descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						descWrite.dstSet = m_descSet[i];
+						descWrite.dstBinding = vulkanUniform->binding();
+						descWrite.descriptorCount = 1;
+						descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+						descWrite.pBufferInfo = &vertUni;
 
-
-
-					m_devFuncs->vkUpdateDescriptorSets(dev, 4, descWrite, 0, nullptr);
-                }
+						m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
+					}
+				}
 
 
 
@@ -607,17 +559,11 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 
 	{
-		if (buffer != nullptr && buffer_size != 0)
-		{
-			update_uniform(window, buffer, buffer_size);
-		}
-
         VkCommandBuffer cb = window->currentCommandBuffer();
 
         m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_TRANSFORM_OFFSET, CONST_TRANSFORM_SIZE, object->transformConst);
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_PROJECTION_OFFSET, CONST_PROJECTION_SIZE, camera->projection);
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_TRANSFORM_OFFSET, CONST_UV_TRANSFORM_SIZE, uvTransformConst);
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_FRAG_OFFSET, CONST_FRAG_SIZE, fragConst);
 
@@ -634,9 +580,11 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 											&m_descSet[window->currentFrame()], 1, frameUniOffsets);
 
         VkBuffer buffer = vertexBuffer->vk_buffer->get();
+		VkBuffer buffer2 = vulkanUniform->buffer();
 
         VkDeviceSize vbOffset = 0;
         m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
+		m_devFuncs->vkCmdBindVertexBuffers(cb, 1, 1, &buffer2, &vbOffset);
 
 		if (indexBuffer != nullptr)
 		{
@@ -665,22 +613,4 @@ void PaintMaterialVulkan::setTextureResource(std::shared_ptr<BitmapTextureResour
 {
     (void)textureResource;
     //_textureResource = textureResource;
-}
-
-
-void PaintMaterialVulkan::update_uniform(VulkanWindow *window, const void *data, int size)
-{
-	VulkanFunctions *m_devFuncs = window->getFunctions();
-
-	VkDevice dev = window->device();
-
-	quint8 *p;
-	VkResult err = m_devFuncs->vkMapMemory(dev, m_bufMem, 0, size, 0, reinterpret_cast<void **>(&p));
-
-	if (err != VK_SUCCESS)
-		qFatal("Failed to map memory: %d", err);
-
-	memcpy(p, data, size);
-
-	m_devFuncs->vkUnmapMemory(dev, m_bufMem);
 }

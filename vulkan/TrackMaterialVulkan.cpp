@@ -11,21 +11,22 @@
 #include "flash/display3D/VK_IndexBuffer3D.h"
 #include "path.h"
 #include "VulkanFunctions.h"
+#include "VulkanUniform.h"
 #include <QVulkanDeviceFunctions>
 #include <QImage>
 #include <QDebug>
 
 
-#define CONST_TRANSFORM_OFFSET 0
+#define CONST_TRANSFORM_OFFSET 0 //c0 c1 c2
 #define CONST_TRANSFORM_SIZE 48
 
-#define CONST_PROJECTION_OFFSET 48
-#define CONST_PROJECTION_SIZE 32
+#define CONST_UV_CORRECTION_OFFSET 48 //c4
+#define CONST_UV_CORRECTION_SIZE 16
 
-#define CONST_UV_TRANSFORM_OFFSET 80
-#define CONST_UV_TRANSFORM_SIZE 64
+#define CONST_UV_TRANSFORM_OFFSET 64 //c14 c15
+#define CONST_UV_TRANSFORM_SIZE 32
 
-#define CONST_COLOR_OFFSET 112
+#define CONST_COLOR_OFFSET 96 //fc0
 #define CONST_COLOR_SIZE 32
 
 
@@ -34,11 +35,6 @@ static VkPushConstantRange pushConstantRanges[] = {
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 		.offset = CONST_TRANSFORM_OFFSET,
 		.size = CONST_TRANSFORM_SIZE
-	},
-	{
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_PROJECTION_OFFSET,
-		.size = CONST_PROJECTION_SIZE
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
@@ -74,8 +70,11 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
                                      int firstIndex,
                                      int numTriangles,
                                      Object3D *object,
-                                     float uvTransformConst[8])
+									 float uvTransformConst[8],
+									 VulkanUniform *vulkanUniform)
 {
+	(void)camera;
+
     VulkanFunctions *m_devFuncs = window->getFunctions();
 
 
@@ -149,7 +148,7 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
                     VkDescriptorPoolCreateInfo descPoolInfo;
                     memset(&descPoolInfo, 0, sizeof(descPoolInfo));
                     descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-                    descPoolInfo.maxSets = concurrentFrameCount;
+					descPoolInfo.maxSets = 2; //concurrentFrameCount;
                     descPoolInfo.poolSizeCount = 1;
                     descPoolInfo.pPoolSizes = descPoolSizes;
                     err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
@@ -158,7 +157,7 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
                 }
 
                 {
-                    VkDescriptorSetLayoutBinding layoutBinding[1] =
+					VkDescriptorSetLayoutBinding layoutBinding[] =
                     {
                         {
                             1, // binding
@@ -166,13 +165,20 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
                             1, // descriptorCount
                             VK_SHADER_STAGE_FRAGMENT_BIT,
                             nullptr
-                        }
+						},
+						{
+							vulkanUniform->binding(), // binding
+							VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+							1, // descriptorCount
+							VK_SHADER_STAGE_VERTEX_BIT,
+							nullptr
+						}
                     };
                     VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
                         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                         nullptr,
                         0,
-                        1, // bindingCount
+						sizeof(layoutBinding) / sizeof(layoutBinding[0]), // bindingCount
                         layoutBinding
                     };
                     err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
@@ -212,7 +218,26 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
                     descWrite[0].pImageInfo = &descImageInfo;
 
                     m_devFuncs->vkUpdateDescriptorSets(dev, 1, descWrite, 0, nullptr);
-                }
+
+
+					{
+						VkDescriptorBufferInfo vertUni;
+						vertUni.buffer = vulkanUniform->buffer();
+						vertUni.offset = 0;
+						vertUni.range = 1024;
+
+						VkWriteDescriptorSet descWrite;
+						memset(&descWrite, 0, sizeof(descWrite));
+						descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						descWrite.dstSet = m_descSet[i];
+						descWrite.dstBinding = 2;
+						descWrite.descriptorCount = 1;
+						descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+						descWrite.pBufferInfo = &vertUni;
+
+						m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
+					}
+				}
 
 
                 {
@@ -389,19 +414,24 @@ void TrackMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_TRANSFORM_OFFSET, CONST_TRANSFORM_SIZE, object->transformConst);
 
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_PROJECTION_OFFSET, CONST_PROJECTION_SIZE, camera->projection);
-
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_TRANSFORM_OFFSET, CONST_UV_TRANSFORM_SIZE, uvTransformConst);
 
 		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_COLOR_OFFSET, CONST_COLOR_SIZE, object->colorConst);
 
-        m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                                            &m_descSet[window->currentFrame()], 0, nullptr);
+
+		{
+			uint32_t pDynamicOffsets[1];
+			pDynamicOffsets[0] = 0;
+			m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_descSet[window->currentFrame()], 1, pDynamicOffsets);
+		}
 
         VkBuffer buffer = vertexBuffer->vk_buffer->get();
+		VkBuffer buffer2 = vulkanUniform->buffer();
 
         VkDeviceSize vbOffset = 0;
         m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
+		m_devFuncs->vkCmdBindVertexBuffers(cb, 1, 1, &buffer2, &vbOffset);
+
 
         m_devFuncs->vkCmdBindIndexBuffer(cb, indexBuffer->vk_buffer->get(), 0, VK_INDEX_TYPE_UINT16);
 

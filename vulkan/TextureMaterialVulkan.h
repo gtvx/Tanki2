@@ -15,6 +15,7 @@ class VulkanIndexBuffer;
 class VulkanTextureBuffer;
 class BitmapTextureResource;
 class VulkanWindow;
+class VulkanUniform;
 
 
 class TextureMaterialVulkan
@@ -42,6 +43,7 @@ class TextureMaterialVulkan
 
 public:
     TextureMaterialVulkan();
+
     void drawOpaque(VulkanWindow *window,
                     Camera3D *camera,
                     VertexBufferResource *vertexBuffer,
@@ -49,7 +51,8 @@ public:
                     int firstIndex,
                     int numTriangles,
 					Object3D *object,
-					bool decal);
+					bool decal,
+					VulkanUniform *vulkanUniform);
 
     void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
 

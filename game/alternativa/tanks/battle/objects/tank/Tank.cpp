@@ -81,14 +81,14 @@ Tank::Tank(IGameObject *user,
 	this->createBody(mass,_loc12_);
 	this->createCollisionPrimitives(_loc12_);
 	this->createVisibilityPoints(_loc12_);
-	this->initTurretGeometry(skin);// turrent
+	this->initTurretGeometry(skin);
 	this->chassis = new TrackedChassis(this->tankBody->body, this->suspensionParams, this->maxSpeedSmoother, _loc11_);
 	this->tracksAnimator = new TracksAnimator(this->chassis, skin, this->maxSpeedSmoother);
 	this->state = ClientTankState::ACTIVE;
 	//this->bodyStateValidator = new BodyPhysicsStateValidator(this->tankBody.body,param9);
 	this->_weaponMount = weaponMount;
 	this->weapon = weapon;
-	this->weapon->init(this); //weapon Оружие
+	this->weapon->init(this);
 	//this->title = title;
 	//logService = LogService(OSGi.getInstance().getService(LogService));
 	this->tankBody->onTankInited();
@@ -274,7 +274,6 @@ CollisionBox* Tank::createTurretCollision(const Vector3 *param1)
 
 void Tank::setPhysicsState(const Vector3d *position, const Vector3d *orientation, const Vector3d *velocity, const Vector3d *angularVelocity)
 {
-	//velocity->setX(0.60);
 	Body *body = this->tankBody->body;
 	BodyState *bodyState = &body->state;
 	BattleUtils::copyToVector3(position, &bodyState->position);

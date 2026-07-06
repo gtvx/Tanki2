@@ -23,7 +23,7 @@ double Vector3D::normalize()
 	double lenInv = len != 0. ? (1. / len) : 0.;
 	this->x = this->x * lenInv;
 	this->y = this->y * lenInv;
-	this->x = this->z * lenInv;
+	this->z = this->z * lenInv;
 	return len;
 }
 

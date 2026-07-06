@@ -74,7 +74,8 @@ void TrackMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   this->uvTransformConst);
+					   this->uvTransformConst,
+					   p->vulkanUniform);
 }
 
 

@@ -293,9 +293,9 @@ void FollowCameraController::getCollisionPoint(const Vector3 *param1, const Vect
 	{
 		double v = COLLIDER_RADIUS + 0.1;
 
-		param4->setX(collisionPoint3D.getX() + v * collisionNormal3D.getX());
-		param4->setY(collisionPoint3D.getY() + v * collisionNormal3D.getY());
-		param4->setZ(collisionPoint3D.getZ() + v * collisionNormal3D.getZ());
+		param4->setX(collisionPoint3D.getX() + (v * collisionNormal3D.getX()));
+		param4->setY(collisionPoint3D.getY() + (v * collisionNormal3D.getY()));
+		param4->setZ(collisionPoint3D.getZ() + (v * collisionNormal3D.getZ()));
 	}
 	else
 	{

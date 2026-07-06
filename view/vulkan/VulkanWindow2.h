@@ -13,6 +13,7 @@ class VulkanWindow2 : public EVulkanWindow
 	GameCamera *camera;
 	BattleInputService *battleInputService;
 
+	void initVulkan(VulkanWindow *vulkanWindow) override;
 	void render(VulkanWindow *vulkanWindow) override;
 	void keyReleaseEvent(QKeyEvent *event) override;
 	void keyPressEvent(QKeyEvent *event) override;

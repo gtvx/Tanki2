@@ -15,6 +15,8 @@
 #include "Object3D_isType.h"
 #include "../objects/Decal.h"
 #include "vulkan/VulkanWindow.h"
+#include "vulkan/VulkanUniform.h"
+#include "utils/float_array.h"
 
 
 static const double fov = 1.5707963267948966;
@@ -83,6 +85,10 @@ Camera3D::Camera3D()
 		vertexBufferList[i] = nullptr;
 
 	vertexCurrentNumber = 0;
+
+	float_array_set_8(fragmentConst, 0, 0, 0, 1, 0.5, 0.5, 0, (1 / 0x1000));
+	vulkanUniform = new VulkanUniform;
+
 }
 
 
@@ -180,6 +186,12 @@ void Camera3D::clonePropertiesFrom(const Object3D *in)
 }
 
 
+void Camera3D::initVulkan(VulkanWindow *vulkanWindow)
+{
+	vulkanUniform->init(vulkanWindow, 2);
+}
+
+
 void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 {
 	this->opaqueCount = 0;
@@ -198,6 +210,39 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 	this->projection[1] = 1;
 	this->projection[2] = this->farClipping / (this->farClipping - this->nearClipping);
 	this->projection[3] = (this->nearClipping * this->farClipping) / (this->nearClipping - this->farClipping);
+
+	this->fragmentConst[0] = this->farClipping;
+	this->fragmentConst[1] = this->farClipping / 255;
+
+	{
+		float array[16];
+
+		//vertex c3
+		array[0] = this->projection[0];
+		array[1] = this->projection[1];
+		array[2] = this->projection[2];
+		array[3] = this->projection[3];
+
+		//fragment c17
+		array[4] = this->fragmentConst[0];
+		array[5] = this->fragmentConst[1];
+		array[6] = this->fragmentConst[2];
+		array[7] = this->fragmentConst[3];
+		array[8] = this->fragmentConst[4];
+		array[9] = this->fragmentConst[5];
+		array[10] = this->fragmentConst[6];
+		array[11] = this->fragmentConst[7];
+
+		//vertex c254
+		array[12] = 0.00125;
+		array[13] = 0.00166667;
+		array[14] = 0;
+		array[15] = 0;
+
+
+		vulkanUniform->upload(array, 0, 16 * sizeof(float));
+	}
+
 
 	this->composeCameraMatrix();
 
@@ -254,6 +299,7 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 		p.firstIndex =  this->opaqueFirstIndexes[i];
 		p.numTriangles = this->opaqueNumsTriangles[i];
 		p.object =  this->opaqueObjects[i];
+		p.vulkanUniform = vulkanUniform;
 
 		material->drawOpaqueVulkan(&p);
 	}
@@ -412,6 +458,7 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 			p.numTriangles = decal->numTriangles;
 			p.object =  decal;
 			p.decal = true;
+			p.vulkanUniform = vulkanUniform;
 
 			decal->faceList->material->drawOpaqueVulkan(&p);
 
@@ -2168,6 +2215,7 @@ void Camera3D::drawTransparentList(VulkanWindow *vulkanWindow, Shared<Face> face
 		p.firstIndex =  0;
 		p.numTriangles = triangles_count;
 		p.object =  object;
+		p.vulkanUniform = vulkanUniform;
 
 		material->drawTransparentVulkan(&p);
 	}

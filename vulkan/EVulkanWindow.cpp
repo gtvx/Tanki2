@@ -605,6 +605,8 @@ bool EVulkanWindow::init()
         status = StatusDeviceReady;
     }
 
+	initVulkan(this);
+
     return true;
 }
 

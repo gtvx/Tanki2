@@ -15,6 +15,7 @@ class VulkanIndexBuffer;
 class VulkanTextureBuffer;
 class BitmapTextureResource;
 class VulkanWindow;
+class VulkanUniform;
 
 
 class TrackMaterialVulkan
@@ -45,7 +46,8 @@ public:
                     int firstIndex,
                     int numTriangles,
                     Object3D *object,
-                    float uvTransformConst[8]);
+					float uvTransformConst[8],
+					VulkanUniform *vulkanUniform);
 
     void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
 
