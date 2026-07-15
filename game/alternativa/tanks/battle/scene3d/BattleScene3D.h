@@ -85,7 +85,7 @@ public:
 
 	void setRenderVulkan(VulkanWindow *vulkanWindow);
 
-	void setBillboardImage(BitmapData *bitmapData);
+	void setBillboardImage(std::shared_ptr<BitmapData> bitmapData);
 
 
 	void addRenderer(Renderer *renderer, int index = 0);

@@ -17,15 +17,7 @@ layout(std140, binding = 2) uniform buf {
 } ubuf;
 
 layout(push_constant) uniform PC {
-    vec4 c0; //0 transformConst
-    vec4 c1; //16 transformConst
-    vec4 c2; //32 transformConst
-
-    vec4 c4; //48 uvCorrection
-
-    vec4 c14; //64 uvTransformConst
-    vec4 c15; //80 uvTransformConst
-
+    layout(offset = 192)
     vec4 fc23; //96 fragConst
     vec4 fc24; //112 fragConst
 } pc;

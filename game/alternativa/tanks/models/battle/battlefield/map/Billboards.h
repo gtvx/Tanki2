@@ -15,12 +15,12 @@ class Billboards
 	QVector<std::shared_ptr<Mesh>> billboards;
 	QVector<Shared<Face>> faces;
 	std::shared_ptr<TextureMaterial> material;
-	BitmapData *billboardImage;
+	std::shared_ptr<BitmapData> billboardImage;
 
 public:
 	Billboards();
 	void add(std::shared_ptr<Mesh> mesh);
-	void setImage(BitmapData *bitmapData);
+	void setImage(std::shared_ptr<BitmapData> bitmapData);
 
 private:
 	void updateMaterial();

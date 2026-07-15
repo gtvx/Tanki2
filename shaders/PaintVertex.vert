@@ -24,9 +24,6 @@ layout(push_constant) uniform PC {
 
     vec4 c14; //64 uvTransformConst
     vec4 c15; //80 uvTransformConst
-
-    vec4 fc0; //96 colorConst
-    vec4 fc1; //112 colorConst
 } pc;
 
 
@@ -78,8 +75,7 @@ void main()
     r1.y = r1.y + c15.z;
 
     //mov oT6, r1
-    oT6.x = r1.x;
-    oT6.y = r1.y;
+    oT6.xy = r1.xy;
 
 
     //2

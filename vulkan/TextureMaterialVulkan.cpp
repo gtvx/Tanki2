@@ -14,48 +14,47 @@
 #include "flash/display3D/VK_IndexBuffer3D.h"
 #include "path.h"
 #include "VulkanUniform.h"
+#include "hardware/alternativa/engine3d/materials/DrawParams.h"
 #include <QDebug>
 
 
 
-#define CONST_TRANSFORM_OFFSET 0 //c0 c1 c2
-#define CONST_TRANSFORM_SIZE 48
+#define CONST_VERTEX_OFFSET 0
+#define CONST_VERTEX_SIZE 192
 
-#define CONST_UV_CORRECTION_OFFSET 48 //c4
-#define CONST_UV_CORRECTION_SIZE 16
-
-#define CONST_UV_TRANSFORM_OFFSET 64 //c14 c15
-#define CONST_UV_TRANSFORM_SIZE 32
-
-#define CONST_COLOR_OFFSET 96 //fc0 fc1
-#define CONST_COLOR_SIZE 32
-
-#define CONST_DECAL_OFFSET 112
-#define CONST_DECAL_SIZE 32
+#define CONST_FRAGMENT_OFFSET 192
+#define CONST_FRAGMENT_SIZE 64
 
 
 static VkPushConstantRange pushConstantRanges[] = {
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_TRANSFORM_OFFSET,
-		.size = CONST_TRANSFORM_SIZE
-	},
-	{
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_UV_CORRECTION_OFFSET,
-		.size = CONST_UV_CORRECTION_SIZE
+		.offset = CONST_VERTEX_OFFSET,
+		.size = CONST_VERTEX_SIZE
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-		.offset = CONST_COLOR_OFFSET,
-		.size = CONST_COLOR_SIZE
-	},
-	{
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_DECAL_OFFSET,
-		.size = CONST_DECAL_SIZE
+		.offset = CONST_FRAGMENT_OFFSET,
+		.size = CONST_FRAGMENT_SIZE
 	}
 };
+
+
+namespace
+{
+	struct CONST_VERTEX
+	{
+		float transform[12];
+		float uvCorrection[4];
+		float uvTransform[8];
+		float decalCorrection[8];
+	};
+
+	struct CONST_FRAGMEN
+	{
+		float color[8];
+	};
+}
 
 
 TextureMaterialVulkan::TextureMaterialVulkan()
@@ -72,25 +71,16 @@ TextureMaterialVulkan::TextureMaterialVulkan()
 }
 
 
-void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
-                                       Camera3D *camera,
-                                       VertexBufferResource *vertexBuffer,
-                                       IndexBufferResource *indexBuffer,
-                                       int firstIndex,
-                                       int numTriangles,
-									   Object3D *object,
-									   bool decal,
-									   VulkanUniform *vulkanUniform)
+void TextureMaterialVulkan::init(DrawInitParams *p)
 {
-    VulkanFunctions *m_devFuncs = window->getFunctions();
+	if (p->vulkanWindow != nullptr && p->vulkanWindow->isInit())
+	{
+		VulkanFunctions *m_devFuncs = p->vulkanWindow->getFunctions();
 
+		VkDevice dev = p->vulkanWindow->device();
 
-    if (window != nullptr && window->isInit())
-    {
-        VkDevice dev = window->device();
-
-        if (pipeline == VK_NULL_HANDLE)
-        {
+		if (pipeline == VK_NULL_HANDLE)
+		{
 			if (pipelineCache == VK_NULL_HANDLE)
 			{
 				VkPipelineCacheCreateInfo pipelineCacheInfo;
@@ -102,8 +92,8 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 			}
 
-            if (vulkanTextureBuffer == nullptr)
-            {
+			if (vulkanTextureBuffer == nullptr)
+			{
 				if (this->textureResource == nullptr)
 				{
 					qDebug() << this << "error TextureMaterialVulkan::drawOpaque this->textureResource";
@@ -115,18 +105,19 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 				}
 
 				//std::shared_ptr<BitmapData> bitmapData = this->textureResource->bitmapData();
-				BitmapData *bitmapData = this->textureResource->bitmapData();
-                if (bitmapData != nullptr)
-                {
-                    QImage image = *bitmapData->qimage();
+				std::shared_ptr<BitmapData> bitmapData = this->textureResource->bitmapData();
+				if (bitmapData != nullptr)
+				{
+					QImage image = *bitmapData->qimage();
 
-                    vulkanTextureBuffer = new VulkanTextureBuffer();
-                    vulkanTextureBuffer->createTexture(window, image);
-                }
+					vulkanTextureBuffer = new VulkanTextureBuffer();
+					vulkanTextureBuffer->createTexture(p->vulkanWindow, image);
+					vulkanTextureBuffer->ensureTexture(p->vulkanWindow->currentCommandBuffer());
+				}
 
-            }
+			}
 
-			if (decal == true)
+			if (p->decal == true)
 			{
 				shaderModule_vs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialVertexDecal.spv");
 				shaderModule_fs = shader_create(m_devFuncs, dev, path::getShaders() + "TextureMaterialFragmentDecal.spv");
@@ -138,18 +129,18 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 			}
 
 
-            VkResult err;
+			VkResult err;
 
 
-            {
-                {
-                    // Sampler.
-                    VkSamplerCreateInfo samplerInfo;
-                    memset(&samplerInfo, 0, sizeof(samplerInfo));
-                    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			{
+				{
+					// Sampler.
+					VkSamplerCreateInfo samplerInfo;
+					memset(&samplerInfo, 0, sizeof(samplerInfo));
+					samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
 
-					if (decal == false)
+					if (p->decal == false)
 					{
 						samplerInfo.magFilter = VK_FILTER_LINEAR;                    // плавная фильтрация при увеличении
 						samplerInfo.minFilter = VK_FILTER_LINEAR;                    // плавная при уменьшении
@@ -169,115 +160,115 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 					}
 					else
 					{
+						samplerInfo.magFilter = VK_FILTER_LINEAR;
+						samplerInfo.minFilter = VK_FILTER_LINEAR;
+						samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // если нет mipmaps, или VK_SAMPLER_MIPMAP_MODE_LINEAR если есть
 						samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 						samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 						samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-						samplerInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // не используется для repeat
 						samplerInfo.mipLodBias = 1.0f;
 						samplerInfo.anisotropyEnable = VK_FALSE;   // редко нужен для 2D overlay
 						samplerInfo.maxAnisotropy = 1.0f;
-						samplerInfo.minFilter = VK_FILTER_LINEAR;
-						samplerInfo.magFilter = VK_FILTER_LINEAR;
-						samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; // если нет mipmaps, или VK_SAMPLER_MIPMAP_MODE_LINEAR если есть
-						samplerInfo.minLod = 0.0f;
-						samplerInfo.maxLod = 1.0f;                  // запретить выбор мипов если их нет
-						samplerInfo.unnormalizedCoordinates = VK_FALSE; // обычно нормализованные coords
 						samplerInfo.compareEnable = VK_TRUE;
 						samplerInfo.compareOp = VK_COMPARE_OP_EQUAL;
+						samplerInfo.minLod = 0.0f;
+						samplerInfo.maxLod = 1.0f;                  // запретить выбор мипов если их нет
+						samplerInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK; // не используется для repeat
+						samplerInfo.unnormalizedCoordinates = VK_FALSE; // обычно нормализованные coords
 					}
 
-                    err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create sampler: %d", err);
-                }
+					err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create sampler: %d", err);
+				}
 
 
-                const int concurrentFrameCount = window->concurrentFrameCount();
+				const int concurrentFrameCount = p->vulkanWindow->concurrentFrameCount();
 
-                {
-                    // Set up descriptor set and its layout.
+				{
+					// Set up descriptor set and its layout.
 					VkDescriptorPoolSize descPoolSizes[2] = {
 						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
 						{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, uint32_t(concurrentFrameCount) }
-                    };
-                    VkDescriptorPoolCreateInfo descPoolInfo;
-                    memset(&descPoolInfo, 0, sizeof(descPoolInfo));
-                    descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+					};
+					VkDescriptorPoolCreateInfo descPoolInfo;
+					memset(&descPoolInfo, 0, sizeof(descPoolInfo));
+					descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 					descPoolInfo.maxSets = 2; //concurrentFrameCount
 					descPoolInfo.poolSizeCount = 2;
-                    descPoolInfo.pPoolSizes = descPoolSizes;
-                    err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create descriptor pool: %d", err);
-                }
+					descPoolInfo.pPoolSizes = descPoolSizes;
+					err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create descriptor pool: %d", err);
+				}
 
-                {
+				{
 					VkDescriptorSetLayoutBinding layoutBinding[2] =
-                    {
-                        {
-                            1, // binding
-                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            1, // descriptorCount
-                            VK_SHADER_STAGE_FRAGMENT_BIT,
-                            nullptr
+					{
+						{
+							1, // binding
+							VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							1, // descriptorCount
+							VK_SHADER_STAGE_FRAGMENT_BIT,
+							nullptr
 						},
 						{
-							vulkanUniform->binding(), // binding
+							p->camera->vulkanUniform->binding(), // binding
 							VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 							1, // descriptorCount
 							VK_SHADER_STAGE_VERTEX_BIT,
 							nullptr
 						}
-                    };
+					};
 
-                    VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
-                        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                        nullptr,
-                        0,
+					VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+						nullptr,
+						0,
 						sizeof(layoutBinding) / sizeof(layoutBinding[0]), // bindingCount
-                        layoutBinding
-                    };
-                    err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create descriptor set layout: %d", err);
-                }
+						layoutBinding
+					};
+					err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create descriptor set layout: %d", err);
+				}
 
 
-                for (int i = 0; i < concurrentFrameCount; ++i)
-                {
-                    VkDescriptorSetAllocateInfo descSetAllocInfo = {
-                        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                        nullptr,
-                        m_descPool,
-                        1,
-                        &m_descSetLayout
-                    };
-                    err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_descSet[i]);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to allocate descriptor 2 set: %d", err);
+				for (int i = 0; i < concurrentFrameCount; ++i)
+				{
+					VkDescriptorSetAllocateInfo descSetAllocInfo = {
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+						nullptr,
+						m_descPool,
+						1,
+						&m_descSetLayout
+					};
+					err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_descSet[i]);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to allocate descriptor 2 set: %d", err);
 
 					VkWriteDescriptorSet descWrite[1];
-                    memset(descWrite, 0, sizeof(descWrite));
+					memset(descWrite, 0, sizeof(descWrite));
 
-                    VkDescriptorImageInfo descImageInfo = {
-                        m_sampler,
-                        vulkanTextureBuffer->texView(),
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                    };
+					VkDescriptorImageInfo descImageInfo = {
+						m_sampler,
+						vulkanTextureBuffer->texView(),
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					};
 
-                    descWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    descWrite[0].dstSet = m_descSet[i];
-                    descWrite[0].dstBinding = 1;
-                    descWrite[0].descriptorCount = 1;
-                    descWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    descWrite[0].pImageInfo = &descImageInfo;
+					descWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descWrite[0].dstSet = m_descSet[i];
+					descWrite[0].dstBinding = 1;
+					descWrite[0].descriptorCount = 1;
+					descWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descWrite[0].pImageInfo = &descImageInfo;
 
-                    m_devFuncs->vkUpdateDescriptorSets(dev, 1, descWrite, 0, nullptr);
+					m_devFuncs->vkUpdateDescriptorSets(dev, 1, descWrite, 0, nullptr);
 
 
 					{
 						VkDescriptorBufferInfo vertUni;
-						vertUni.buffer = vulkanUniform->buffer();
+						vertUni.buffer = p->camera->vulkanUniform->buffer();
 						vertUni.offset = 0;
 						vertUni.range = 1024;
 
@@ -285,108 +276,108 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 						memset(&descWrite, 0, sizeof(descWrite));
 						descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 						descWrite.dstSet = m_descSet[i];
-						descWrite.dstBinding = vulkanUniform->binding();
+						descWrite.dstBinding = p->camera->vulkanUniform->binding();
 						descWrite.descriptorCount = 1;
 						descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 						descWrite.pBufferInfo = &vertUni;
 
 						m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
 					}
-                }
+				}
 
 
 
-                {
-                    // Graphics pipeline.
-                    VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-                    memset(&pipelineLayoutInfo, 0, sizeof(pipelineLayoutInfo));
-                    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-                    pipelineLayoutInfo.setLayoutCount = 1;
-                    pipelineLayoutInfo.pSetLayouts = &m_descSetLayout;
+				{
+					// Graphics pipeline.
+					VkPipelineLayoutCreateInfo pipelineLayoutInfo;
+					memset(&pipelineLayoutInfo, 0, sizeof(pipelineLayoutInfo));
+					pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+					pipelineLayoutInfo.setLayoutCount = 1;
+					pipelineLayoutInfo.pSetLayouts = &m_descSetLayout;
 
 					pipelineLayoutInfo.pushConstantRangeCount = sizeof(pushConstantRanges) / sizeof(pushConstantRanges[0]);
-                    pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
+					pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
 
-                    err = m_devFuncs->vkCreatePipelineLayout(dev, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create pipeline layout: %d", err);
-                }
+					err = m_devFuncs->vkCreatePipelineLayout(dev, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create pipeline layout: %d", err);
+				}
 
-                {
-                    //1
-                    // Vertex layout.
-                    VkVertexInputBindingDescription vertexBindingDesc[] = {
-                        {
-                            0, // binding
-                            8 * sizeof(float),
-                            VK_VERTEX_INPUT_RATE_VERTEX
-                        }
-                    };
+				{
+					//1
+					// Vertex layout.
+					VkVertexInputBindingDescription vertexBindingDesc[] = {
+						{
+							0, // binding
+							8 * sizeof(float),
+							VK_VERTEX_INPUT_RATE_VERTEX
+						}
+					};
 
-                    //2
-                    VkVertexInputAttributeDescription vertexAttrDesc[] = {
-                        { // position
-                          0, // location
-                          0, // binding
-                          VK_FORMAT_R32G32B32_SFLOAT,
-                          0 // offset
+					//2
+					VkVertexInputAttributeDescription vertexAttrDesc[] = {
+						{ // position
+						  0, // location
+						  0, // binding
+						  VK_FORMAT_R32G32B32_SFLOAT,
+						  0 // offset
 						},
-                        { // texcoord
-                          1,
-                          0,
-                          VK_FORMAT_R32G32_SFLOAT,
-                          3 * sizeof(float)
-                        }
-                    };
+						{ // texcoord
+						  1,
+						  0,
+						  VK_FORMAT_R32G32_SFLOAT,
+						  3 * sizeof(float)
+						}
+					};
 
-                    //3
-                    VkPipelineVertexInputStateCreateInfo vertexInputInfo;
-                    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-                    vertexInputInfo.pNext = nullptr;
-                    vertexInputInfo.flags = 0;
-                    vertexInputInfo.vertexBindingDescriptionCount = sizeof(vertexBindingDesc) / sizeof(vertexBindingDesc[0]);
-                    vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc;
-                    vertexInputInfo.vertexAttributeDescriptionCount = sizeof(vertexAttrDesc) / sizeof(vertexAttrDesc[0]);
-                    vertexInputInfo.pVertexAttributeDescriptions = vertexAttrDesc;
-
-
-
-                    //4
-                    VkGraphicsPipelineCreateInfo pipelineInfo;
-                    memset(&pipelineInfo, 0, sizeof(pipelineInfo));
-                    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-
-                    //5
-                    VkPipelineShaderStageCreateInfo shaderStages[2];
-                    init_shader_stage_vertex(&shaderStages[0], shaderModule_vs);
-                    init_shader_stage_fragment(&shaderStages[1], shaderModule_fs);
-                    pipelineInfo.stageCount = 2;
-                    pipelineInfo.pStages = shaderStages;
-                    pipelineInfo.pVertexInputState = &vertexInputInfo;
+					//3
+					VkPipelineVertexInputStateCreateInfo vertexInputInfo;
+					vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+					vertexInputInfo.pNext = nullptr;
+					vertexInputInfo.flags = 0;
+					vertexInputInfo.vertexBindingDescriptionCount = sizeof(vertexBindingDesc) / sizeof(vertexBindingDesc[0]);
+					vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc;
+					vertexInputInfo.vertexAttributeDescriptionCount = sizeof(vertexAttrDesc) / sizeof(vertexAttrDesc[0]);
+					vertexInputInfo.pVertexAttributeDescriptions = vertexAttrDesc;
 
 
-                    //6
-                    VkPipelineInputAssemblyStateCreateInfo ia;
-                    memset(&ia, 0, sizeof(ia));
-                    ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-                    ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                    pipelineInfo.pInputAssemblyState = &ia;
 
-                    //7
-                    VkPipelineViewportStateCreateInfo vp;
-                    memset(&vp, 0, sizeof(vp));
-                    vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-                    vp.viewportCount = 1;
-                    vp.scissorCount = 1;
-                    pipelineInfo.pViewportState = &vp;
+					//4
+					VkGraphicsPipelineCreateInfo pipelineInfo;
+					memset(&pipelineInfo, 0, sizeof(pipelineInfo));
+					pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
-                    //8
-                    VkPipelineRasterizationStateCreateInfo rs;
-                    memset(&rs, 0, sizeof(rs));
-                    rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+					//5
+					VkPipelineShaderStageCreateInfo shaderStages[2];
+					init_shader_stage_vertex(&shaderStages[0], shaderModule_vs);
+					init_shader_stage_fragment(&shaderStages[1], shaderModule_fs);
+					pipelineInfo.stageCount = 2;
+					pipelineInfo.pStages = shaderStages;
+					pipelineInfo.pVertexInputState = &vertexInputInfo;
 
 
-					if (decal == false)
+					//6
+					VkPipelineInputAssemblyStateCreateInfo ia;
+					memset(&ia, 0, sizeof(ia));
+					ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+					ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+					pipelineInfo.pInputAssemblyState = &ia;
+
+					//7
+					VkPipelineViewportStateCreateInfo vp;
+					memset(&vp, 0, sizeof(vp));
+					vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+					vp.viewportCount = 1;
+					vp.scissorCount = 1;
+					pipelineInfo.pViewportState = &vp;
+
+					//8
+					VkPipelineRasterizationStateCreateInfo rs;
+					memset(&rs, 0, sizeof(rs));
+					rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+
+
+					if (p->decal == false)
 					{
 						rs.pNext = NULL;
 						rs.flags = 0;
@@ -402,7 +393,7 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 						rs.lineWidth = 1.0f;
 					}
 
-					if (decal == true)
+					if (p->decal == true)
 					{
 #if 1
 						//Вариант A — HUD / 2D overlay (обычно)
@@ -447,30 +438,34 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 					//rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 					//rs.lineWidth = 1.0f;
-                    pipelineInfo.pRasterizationState = &rs;
+					pipelineInfo.pRasterizationState = &rs;
 
-                    //9
-                    VkPipelineMultisampleStateCreateInfo ms;
-                    memset(&ms, 0, sizeof(ms));
-                    ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-                    ms.rasterizationSamples = window->sampleCountFlagBits();
-                    ms.sampleShadingEnable = VK_FALSE;
-                    ms.alphaToCoverageEnable = VK_TRUE;
-                    //ms.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-                    pipelineInfo.pMultisampleState = &ms;
+					//9
+					VkPipelineMultisampleStateCreateInfo ms;
+					memset(&ms, 0, sizeof(ms));
+					ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+					ms.rasterizationSamples = p->vulkanWindow->sampleCountFlagBits();
+					ms.sampleShadingEnable = VK_FALSE;
+					ms.alphaToCoverageEnable = VK_TRUE;
+					//ms.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+					pipelineInfo.pMultisampleState = &ms;
 
 
 
-                    //10
-                    VkPipelineDepthStencilStateCreateInfo ds;
-                    memset(&ds, 0, sizeof(ds));
-                    ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+					//10
+					VkPipelineDepthStencilStateCreateInfo ds;
+					memset(&ds, 0, sizeof(ds));
+					ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
-					if (decal == false)
+					if (p->decal == false)
 					{
 						ds.depthTestEnable = VK_TRUE;
 						ds.depthWriteEnable = VK_TRUE;
-						ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+						//ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+						ds.depthCompareOp = VK_COMPARE_OP_LESS;
+
+						ds.minDepthBounds = 0.0f;
+						ds.maxDepthBounds = 1.0f;
 					}
 					else
 					{
@@ -497,18 +492,18 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 					}
 
 
-                    pipelineInfo.pDepthStencilState = &ds;
+					pipelineInfo.pDepthStencilState = &ds;
 
-                    //11
-                    VkPipelineColorBlendStateCreateInfo cb;
-                    memset(&cb, 0, sizeof(cb));
-                    cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-                    VkPipelineColorBlendAttachmentState att;
-                    memset(&att, 0, sizeof(att));
-                    att.colorWriteMask = 0xF;
-                    cb.attachmentCount = 1;
+					//11
+					VkPipelineColorBlendStateCreateInfo cb;
+					memset(&cb, 0, sizeof(cb));
+					cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+					VkPipelineColorBlendAttachmentState att;
+					memset(&att, 0, sizeof(att));
+					att.colorWriteMask = 0xF;
+					cb.attachmentCount = 1;
 
-					if (decal == true)
+					if (p->decal == true)
 					{
 						att.blendEnable = VK_TRUE;
 						att.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -522,45 +517,59 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 							VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 					}
 
-                    cb.pAttachments = &att;
-                    pipelineInfo.pColorBlendState = &cb;
+					cb.pAttachments = &att;
+					pipelineInfo.pColorBlendState = &cb;
 
-                    //12
-                    VkDynamicState dynEnable[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-                    VkPipelineDynamicStateCreateInfo dyn;
-                    memset(&dyn, 0, sizeof(dyn));
-                    dyn.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-                    dyn.dynamicStateCount = sizeof(dynEnable) / sizeof(VkDynamicState);
-                    dyn.pDynamicStates = dynEnable;
-                    pipelineInfo.pDynamicState = &dyn;
+					//12
+					VkDynamicState dynEnable[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+					VkPipelineDynamicStateCreateInfo dyn;
+					memset(&dyn, 0, sizeof(dyn));
+					dyn.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+					dyn.dynamicStateCount = sizeof(dynEnable) / sizeof(VkDynamicState);
+					dyn.pDynamicStates = dynEnable;
+					pipelineInfo.pDynamicState = &dyn;
 
-                    pipelineInfo.layout = pipelineLayout;
-                    pipelineInfo.renderPass = window->defaultRenderPass();
+					pipelineInfo.layout = pipelineLayout;
+					pipelineInfo.renderPass = p->vulkanWindow->defaultRenderPass();
 
-                    //13
-                    VkResult err = m_devFuncs->vkCreateGraphicsPipelines(dev,
-                                                                         VK_NULL_HANDLE,
-                                                                         1,
-                                                                         &pipelineInfo,
-                                                                         nullptr,
-                                                                         &pipeline);
+					//13
+					VkResult err = m_devFuncs->vkCreateGraphicsPipelines(dev,
+																		 VK_NULL_HANDLE,
+																		 1,
+																		 &pipelineInfo,
+																		 nullptr,
+																		 &pipeline);
 
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create graphics pipeline: %d", err);
-
-
-                }
-
-            }
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create graphics pipeline: %d", err);
 
 
-        }
+				}
 
-        if (vulkanTextureBuffer == nullptr)
-        {
-            qDebug() << "error vulkanTextureBuffer";
-        }
-    }
+			}
+
+
+		}
+
+		if (vulkanTextureBuffer == nullptr)
+		{
+			qDebug() << "error vulkanTextureBuffer";
+		}
+	}
+
+}
+
+
+void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
+									   Camera3D *camera,
+									   VertexBufferResource *vertexBuffer,
+									   IndexBufferResource *indexBuffer,
+									   int firstIndex,
+									   int numTriangles,
+									   Object3D *object,
+									   bool decal)
+{
+    VulkanFunctions *m_devFuncs = window->getFunctions();
 
 
     {
@@ -569,33 +578,57 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
         m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_TRANSFORM_OFFSET, CONST_TRANSFORM_SIZE, object->transformConst);
 
-
-		float uvCorrection[4];
-		uvCorrection[0] = 1;
-		uvCorrection[1] = 1;
-		uvCorrection[2] = 0;
-		uvCorrection[3] = 0;
-
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_CORRECTION_OFFSET, CONST_UV_CORRECTION_SIZE, uvCorrection);
-
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_COLOR_OFFSET, CONST_COLOR_SIZE, object->colorConst);
-
-
-		if (decal == true)
 		{
-			float correctionConst[8];
-			correctionConst[0] = object->matrix4.md * camera->correctionX;
-			correctionConst[1] = object->matrix4.mh * camera->correctionY;
-			correctionConst[2] = object->matrix4.ml;
-			correctionConst[3] = camera->correctionX;
-			correctionConst[4] = (object->matrix4.mc * camera->correctionX) / ((Decal*)object)->attenuation;
-			correctionConst[5] = (object->matrix4.mg * camera->correctionY) / ((Decal*)object)->attenuation;
-			correctionConst[6] = object->matrix4.mk / ((Decal*)object)->attenuation;
-			correctionConst[7] = camera->correctionY;
-			m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_DECAL_OFFSET, CONST_DECAL_SIZE, correctionConst);
+			CONST_VERTEX p;
+
+			for (int i = 0; i < 12; i++)
+				p.transform[i] = object->transformConst[i];
+
+			p.uvCorrection[0] = 1;
+			p.uvCorrection[1] = 1;
+			p.uvCorrection[2] = 0;
+			p.uvCorrection[3] = 0;
+
+			for (int i = 0; i < 8; i++)
+				p.uvTransform[i] = 0;
+
+			int size;
+
+			if (decal == true)
+			{
+				size = 128;
+				p.decalCorrection[0] = object->matrix4.md * camera->correctionX;
+				p.decalCorrection[1] = object->matrix4.mh * camera->correctionY;
+				p.decalCorrection[2] = object->matrix4.ml;
+				p.decalCorrection[3] = camera->correctionX;
+				p.decalCorrection[4] = (object->matrix4.mc * camera->correctionX) / ((Decal*)object)->attenuation;
+				p.decalCorrection[5] = (object->matrix4.mg * camera->correctionY) / ((Decal*)object)->attenuation;
+				p.decalCorrection[6] = object->matrix4.mk / ((Decal*)object)->attenuation;
+				p.decalCorrection[7] = camera->correctionY;
+			}
+			else
+			{
+				size = 96;
+			}
+
+			m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_VERTEX_OFFSET, size, &p);
 		}
+
+		{
+			CONST_FRAGMEN p;
+			p.color[0] = object->colorConst[0];
+			p.color[1] = object->colorConst[1];
+			p.color[2] = object->colorConst[2];
+			p.color[3] = object->colorConst[3];
+			p.color[4] = object->colorConst[4];
+			p.color[5] = object->colorConst[5];
+			p.color[6] = object->colorConst[6];
+			p.color[7] = object->colorConst[7];
+
+			m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_FRAGMENT_OFFSET, 32, &p);
+		}
+
 
 
 		{
@@ -607,7 +640,7 @@ void TextureMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 
         VkBuffer buffer = vertexBuffer->vk_buffer->get();
-		VkBuffer buffer2 = vulkanUniform->buffer();
+		VkBuffer buffer2 = camera->vulkanUniform->buffer();
 
 		VkDeviceSize vbOffset = 0;
 		m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);

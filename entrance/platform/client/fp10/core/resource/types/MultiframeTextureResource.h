@@ -2,6 +2,7 @@
 #define MULTIFRAMETEXTURERESOURCE_H
 
 #include "../Resource.h"
+#include <memory>
 #include <QByteArray>
 
 
@@ -17,7 +18,7 @@ class MultiframeTextureResource : public Resource
 	//FramesConstructor *framesConstructor;
 	SafeURLLoader *loader;
 	QByteArray taraData;
-	BitmapData *_data;
+	std::shared_ptr<BitmapData> _data;
 
 public:
 	MultiframeTextureResource(ResourceInfo *resourceInfo);
@@ -26,7 +27,7 @@ public:
 	int getFrameHeight();
 	int getNumFrames();
 	double getFps();
-	BitmapData* getData();
+	std::shared_ptr<BitmapData> getData();
 };
 
 #endif // MULTIFRAMETEXTURERESOURCE_H

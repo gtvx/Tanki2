@@ -2,12 +2,13 @@
 #define BITMAPTEXTURERESOURCE_H
 
 #include "GfxTextureResource.h"
+#include <memory>
 
 class BitmapData;
 
 class BitmapTextureResource : public GfxTextureResource
 {
-	BitmapData *_bitmapData;
+	std::shared_ptr<BitmapData> _bitmapData;
 
 	int referencesCount;
 
@@ -23,10 +24,10 @@ class BitmapTextureResource : public GfxTextureResource
 
 
 public:
-	BitmapTextureResource(BitmapData *bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures = false, bool calculateMipMapsUsingGPU = false);
+	BitmapTextureResource(std::shared_ptr<BitmapData> bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures = false, bool calculateMipMapsUsingGPU = false);
 
 
-	BitmapData* bitmapData()
+	std::shared_ptr<BitmapData> bitmapData()
 	{
 		return this->_bitmapData;
 	}

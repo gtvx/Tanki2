@@ -4,10 +4,12 @@
 class BitmapData;
 class Function;
 
+#include <memory>
+
 class MutableTextureRegistry
 {
 public:
-	virtual BitmapData* getTexture(BitmapData*, bool = true) = 0;
+	virtual std::shared_ptr<BitmapData> getTexture(std::shared_ptr<BitmapData>, bool = true) = 0;
 	virtual void addTextureChangeHandler(Function*) = 0;
 	virtual void clear() = 0;
 };

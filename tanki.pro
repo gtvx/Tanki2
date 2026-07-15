@@ -26,7 +26,7 @@ CONFIG += c++17
 
 
 win32: {
-    INCLUDEPATH += C:/VulkanSDK/1.4.321.1/Include
+    INCLUDEPATH += $(VK_SDK_PATH)/Include
 }
 
 linux: {
@@ -465,7 +465,7 @@ HEADERS += \
     stream/s_endian.h \
     stream/stream_read.h \
     view/primitive/WidgetPrimitive.h \
-    vulkan/EVulkanWindow.h \
+    vulkan/LVulkanWindow.h \
     vulkan/PaintMaterialVulkan.h \
     vulkan/TextureMaterialVulkan.h \
     vulkan/TrackMaterialVulkan.h \
@@ -786,7 +786,7 @@ SOURCES += \
     path.cpp \
     stream/stream_read.cpp \
     view/primitive/WidgetPrimitive.cpp \
-    vulkan/EVulkanWindow.cpp \
+    vulkan/LVulkanWindow.cpp \
     vulkan/PaintMaterialVulkan.cpp \
     vulkan/TextureMaterialVulkan.cpp \
     vulkan/TrackMaterialVulkan.cpp \

@@ -91,7 +91,7 @@ void BattlefieldModel::initBattleCore()
 
 		if (!data.isEmpty())
 		{
-			BitmapData *bitmapData = new BitmapData;
+			std::shared_ptr<BitmapData> bitmapData = std::make_shared<BitmapData>();
 			bitmapData->loadFromData(data);
 			setBillboardImage(bitmapData);
 		}
@@ -278,7 +278,7 @@ int BattlefieldModel::getPhysicsTime()
 }
 
 
-void BattlefieldModel::setBillboardImage(BitmapData *bitmapData)
+void BattlefieldModel::setBillboardImage(std::shared_ptr<BitmapData> bitmapData)
 {
 	this->battleScene->setBillboardImage(bitmapData);
 }

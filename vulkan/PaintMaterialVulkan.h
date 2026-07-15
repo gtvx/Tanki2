@@ -18,6 +18,7 @@ class VulkanWindow;
 class BitmapData;
 class VulkanUniform;
 class DynamicChangeShader;
+class DrawInitParams;
 
 
 class PaintMaterialVulkan
@@ -59,6 +60,8 @@ public:
 
 	~PaintMaterialVulkan();
 
+	void init(DrawInitParams*);
+
 	void reset();
 
     void drawOpaque(VulkanWindow *window,
@@ -69,8 +72,7 @@ public:
                     int numTriangles,
                     Object3D *object,
                     float uvTransformConst[8],
-					float fragConst[8],
-					VulkanUniform *vulkanUniform);
+					float fragConst[8]);
 
     void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
 };

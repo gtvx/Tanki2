@@ -10,14 +10,14 @@ class TextureMaterial;
 class MaterialEntry
 {
 public:
-	BitmapData *keyData_bitmapData;
+	std::shared_ptr<BitmapData> keyData_bitmapData;
 	QString keyData_string;
 
 	BitmapData *texture;
 	std::shared_ptr<TextureMaterial> material;
 	int referenceCount;
 
-	MaterialEntry(BitmapData *keyData, std::shared_ptr<TextureMaterial> material);
+	MaterialEntry(std::shared_ptr<BitmapData> keyData, std::shared_ptr<TextureMaterial> material);
 	MaterialEntry(const QString &keyData, std::shared_ptr<TextureMaterial> material);
 };
 

@@ -13,7 +13,7 @@ class TextureMaterial : public Material
 	TextureMaterialVulkan *vulkan;
 
 public:
-	TextureMaterial(int id, BitmapData *bitmap = nullptr, bool repeat = false, bool smooth = true, int _mipMapping = 0, double resolution = 1);
+	TextureMaterial(int id, std::shared_ptr<BitmapData> bitmap = nullptr, bool repeat = false, bool smooth = true, int _mipMapping = 0, double resolution = 1);
 
 	QString diffuseMapURL;
 	QString opacityMapURL;
@@ -35,11 +35,11 @@ public:
 	bool correctUV;
 	bool _hardwareMipMaps;
 
-	BitmapData *bitmap;
-	QVector<BitmapData*> mipMap;
+	std::shared_ptr<BitmapData> bitmap;
+	QVector<std::shared_ptr<BitmapData>> mipMap;
 
-	void setTexture(BitmapData *texture);
-	BitmapData* texture();
+	void setTexture(std::shared_ptr<BitmapData> texture);
+	std::shared_ptr<BitmapData> texture();
 
 	bool transparent() override;
 
@@ -48,9 +48,10 @@ public:
 
 	virtual void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource);
 
+	void init(DrawInitParams*) override;
 };
 
 
-std::shared_ptr<TextureMaterial> new_TextureMaterial(int id, BitmapData *bitmap = nullptr, bool repeat = false, bool smooth = true, int _mipMapping = 0, double resolution = 1);
+std::shared_ptr<TextureMaterial> new_TextureMaterial(int id, std::shared_ptr<BitmapData> bitmap = nullptr, bool repeat = false, bool smooth = true, int _mipMapping = 0, double resolution = 1);
 
 #endif // TEXTUREMATERIAL_H

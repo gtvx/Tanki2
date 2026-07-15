@@ -6,7 +6,7 @@
 #include <QImage>
 
 
-static BitmapData* mergeBitmapAlpha(const QByteArray &diffuseData, const QByteArray &alpha)
+static std::shared_ptr<BitmapData> mergeBitmapAlpha(const QByteArray &diffuseData, const QByteArray &alpha)
 {
 	QImage image_details;
 	image_details.loadFromData(diffuseData);
@@ -14,7 +14,7 @@ static BitmapData* mergeBitmapAlpha(const QByteArray &diffuseData, const QByteAr
 	QImage image_details_alpha;
 	image_details_alpha.loadFromData(alpha);
 
-	BitmapData *result_details = new BitmapData(image_details.width(), image_details.height(), true);
+	std::shared_ptr<BitmapData> result_details = std::make_shared<BitmapData>(image_details.width(), image_details.height(), true);
 
 	QImage *result = result_details->qimage();
 
@@ -81,7 +81,7 @@ void TextureConstructor::createTexture(TextureByteData *textureData, ITextureCon
 
 	if (textureData->opacityData.isEmpty())
 	{
-		this->_texture = new BitmapData();
+		this->_texture = std::make_shared<BitmapData>();
 		if (!this->_texture->loadFromData(textureData->diffuseData))
 		{
 			throw Error("error TextureConstructor::createTexture loadFromData diffuseData");

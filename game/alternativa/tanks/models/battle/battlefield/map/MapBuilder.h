@@ -29,7 +29,7 @@ public:
 	MapGeometryParser *mapGeometryParser;
 	std::shared_ptr<KDContainer> mapContainer;
 	MapTexturesBuilder *texturesBuilder;
-	QVector<BitmapData*> textures;
+	QVector<std::shared_ptr<BitmapData>> textures;
 	AABB *mapBounds;
 
 private:

@@ -130,7 +130,10 @@ void BattleScene3D::render(int param1, int param2)
 
 		if (vulkanWindow != nullptr)
 		{
-			vulkanWindow->render1();
+			if (vulkanWindow->isRenderEnable())
+			{
+				this->camera->renderVulkan(vulkanWindow);
+			}
 		}
 	}
 }
@@ -288,7 +291,7 @@ void BattleScene3D::setRenderVulkan(VulkanWindow *vulkanWindow)
 }
 
 
-void BattleScene3D::setBillboardImage(BitmapData *bitmapData)
+void BattleScene3D::setBillboardImage(std::shared_ptr<BitmapData> bitmapData)
 {
 	this->billboards->setImage(bitmapData);
 }
@@ -361,12 +364,11 @@ std::shared_ptr<Decal> BattleScene3D::createDecal(const Vector3 *position,
 	{
 		auto decal = this->decalFactory->createDecal(position,
 													 projectionOrigin,
-													 radius, material,
+													 radius,
+													 material,
 													 dynamic_cast<KDContainer*>(this->mapContainer.get()),
 													 rotationState);
 
-
-		//this->rootContainer->addChild(decal);
 		this->mapContainerProxy->addChildAt(decal, 0);
 		this->allDecals.insert(decal);
 		this->addObjectToExclusion(decal);

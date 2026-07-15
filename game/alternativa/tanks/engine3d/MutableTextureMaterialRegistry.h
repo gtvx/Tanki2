@@ -13,7 +13,7 @@ public:
 	MutableTextureMaterialRegistry(TextureMaterialFactory *materialFactory, MutableTextureRegistry *textureRegistry);
 
 protected:
-	BitmapData *getTexture(BitmapData *bitmapData, bool _arg_2);
+	std::shared_ptr<BitmapData> getTexture(std::shared_ptr<BitmapData> bitmapData, bool _arg_2) override;
 
 private:
 	void onTextureChange();

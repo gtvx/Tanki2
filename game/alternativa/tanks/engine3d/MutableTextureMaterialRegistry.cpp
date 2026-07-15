@@ -24,7 +24,7 @@ void MutableTextureMaterialRegistry::_updateTexture(TextureMaterial *textureMate
 }
 
 
-BitmapData* MutableTextureMaterialRegistry::getTexture(BitmapData *bitmapData, bool _arg_2)
+std::shared_ptr<BitmapData> MutableTextureMaterialRegistry::getTexture(std::shared_ptr<BitmapData> bitmapData, bool _arg_2)
 {
 	return this->textureRegistry->getTexture(bitmapData, _arg_2);
 }

@@ -18,6 +18,7 @@ class FillMaterial : public TextureMaterial
 public:
 	FillMaterial(int color = 8355711, double lineThickness = 1, double alpha = -1, int lineColor = 16777215);
 	virtual void draw(Camera3D *param1, Canvas *param2, Shared<Face> param3, double param4);
+	void init(DrawInitParams*) override;
 };
 
 std::shared_ptr<FillMaterial> new_FillMaterial(int color = 8355711, double lineThickness = 1, double alpha = -1, int lineColor = 1677721);

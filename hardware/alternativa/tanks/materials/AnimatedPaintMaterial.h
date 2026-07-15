@@ -22,14 +22,17 @@ public:
 	double scaleY;
 
 
-	AnimatedPaintMaterial(BitmapData *spriteSheetBitmap,
-						  BitmapData *lightMapBitmap,
-						  BitmapData *texture,
+	AnimatedPaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+						  std::shared_ptr<BitmapData> lightMapBitmap,
+						  std::shared_ptr<BitmapData> texture,
 						  int numFramesX,
 						  int numFramesY,
 						  int fps,
 						  int numFrames,
 						  int mipMapping = 0);
+
+	void init(DrawInitParams*) override;
+
 private:
 	void update();
 	void drawOpaqueVulkan(DrawParams *p) override;
@@ -37,13 +40,13 @@ private:
 };
 
 
-std::shared_ptr<AnimatedPaintMaterial> new_AnimatedPaintMaterial(BitmapData *spriteSheetBitmap,
-																  BitmapData *lightMapBitmap,
-																  BitmapData *texture,
-																  int numFramesX,
-																  int numFramesY,
-																  int fps,
-																  int numFrames,
-																  int mipMapping = 0);
+std::shared_ptr<AnimatedPaintMaterial> new_AnimatedPaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+																 std::shared_ptr<BitmapData> lightMapBitmap,
+																 std::shared_ptr<BitmapData> texture,
+																 int numFramesX,
+																 int numFramesY,
+																 int fps,
+																 int numFrames,
+																 int mipMapping = 0);
 
 #endif // ANIMATEDPAINTMATERIAL_H

@@ -48,8 +48,6 @@ bool VulkanTextureBuffer::createTexture(VulkanWindow *vulkanWindow,  const QImag
     this->vulkanWindow = vulkanWindow;
 
     VkDevice dev = vulkanWindow->device();
-    //QVulkanInstance *inst = vulkanWindow->vulkanInstance();
-    //m_devFuncs = inst->deviceFunctions(dev);
 
     m_devFuncs = vulkanWindow->getFunctions();
 
@@ -57,14 +55,11 @@ bool VulkanTextureBuffer::createTexture(VulkanWindow *vulkanWindow,  const QImag
     // Convert to byte ordered RGBA8. Use premultiplied alpha, see pColorBlendState in the pipeline.
     QImage img = image.convertToFormat(QImage::Format_RGBA8888_Premultiplied);
 
-    //QVulkanFunctions *f = vulkanWindow->vulkanInstance()->functions();
-    //VkDevice dev = m_window->device();
-
     //const bool srgb = QCoreApplication::arguments().contains(QStringLiteral("--srgb"));
     //if (srgb)
     //qDebug("sRGB swapchain was requested, making texture sRGB too");
 
-    bool srgb = false;
+	bool srgb = false;
 
 	m_texFormat = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -153,8 +148,7 @@ bool VulkanTextureBuffer::createTextureImage(const QSize &size, VkImage *image, 
     imageInfo.tiling = tiling;
     imageInfo.usage = usage;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-	//imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	//imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+
 
     VkResult err = m_devFuncs->vkCreateImage(dev, &imageInfo, nullptr, image);
     if (err != VK_SUCCESS) {

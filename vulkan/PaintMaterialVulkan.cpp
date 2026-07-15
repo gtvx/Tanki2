@@ -13,52 +13,53 @@
 #include "path.h"
 #include "MyMath.h"
 #include "VulkanUniform.h"
+#include "hardware/alternativa/engine3d/materials/DrawParams.h"
 #include <QVulkanDeviceFunctions>
 #include <QImage>
 #include <QDebug>
+
 
 static const int details_binding = 1;
 static const int spriteSheet_binding = 4;
 static const int lightMap_binding = 6;
 
 
-#define CONST_TRANSFORM_OFFSET 0
-#define CONST_TRANSFORM_SIZE 48
 
-#define CONST_UV_CORRECTION_OFFSET 48
-#define CONST_UV_CORRECTION_SIZE 16
+#define CONST_VERTEX_OFFSET 0
+#define CONST_VERTEX_SIZE 192
 
-#define CONST_UV_TRANSFORM_OFFSET 64
-#define CONST_UV_TRANSFORM_SIZE 32
-
-#define CONST_FRAG_OFFSET 96
-#define CONST_FRAG_SIZE 32
-
+#define CONST_FRAGMENT_OFFSET 192
+#define CONST_FRAGMENT_SIZE 64
 
 
 static VkPushConstantRange pushConstantRanges[] = {
 	{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_TRANSFORM_OFFSET,
-		.size = CONST_TRANSFORM_SIZE
-	},
-	{
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_UV_CORRECTION_OFFSET,
-		.size = CONST_UV_CORRECTION_SIZE
-	},
-	{
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = CONST_UV_TRANSFORM_OFFSET,
-		.size = CONST_UV_TRANSFORM_SIZE
+		.offset = CONST_VERTEX_OFFSET,
+		.size = CONST_VERTEX_SIZE
 	},
 	{
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-		.offset = CONST_FRAG_OFFSET,
-		.size = CONST_FRAG_SIZE
+		.offset = CONST_FRAGMENT_OFFSET,
+		.size = CONST_FRAGMENT_SIZE
 	}
 };
 
+
+namespace
+{
+	struct CONST_VERTEX
+	{
+		float transform[12];
+		float uvCorrection[4];
+		float uvTransform[8];
+	};
+
+	struct CONST_FRAGMEN
+	{
+		float frag[8];
+	};
+}
 
 
 #if 0
@@ -126,86 +127,70 @@ PaintMaterialVulkan::~PaintMaterialVulkan()
 }
 
 
-void PaintMaterialVulkan::reset()
+void PaintMaterialVulkan::init(DrawInitParams *p)
 {
-	pipeline = VK_NULL_HANDLE;
-}
+	if (p->vulkanWindow != nullptr && p->vulkanWindow->isInit())
+	{
+		VulkanFunctions *m_devFuncs = p->vulkanWindow->getFunctions();
+
+		VkPipelineCache pipelineCache = p->vulkanWindow->getPipelineCache();
 
 
-void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
-                                     Camera3D *camera,
-                                     VertexBufferResource *vertexBuffer,
-                                     IndexBufferResource *indexBuffer,
-                                     int firstIndex,
-                                     int numTriangles,
-                                     Object3D *object,
-                                     float uvTransformConst[8],
-									 float fragConst[8],
-									 VulkanUniform *vulkanUniform)
-{
-    (void)camera;
+		if (pipelineCache == VK_NULL_HANDLE)
+		{
+			return;
+		}
 
+		VkDevice dev = p->vulkanWindow->device();
 
-    VulkanFunctions *m_devFuncs = window->getFunctions();
+		if (pipeline == VK_NULL_HANDLE)
+		{
+			if (textureBuffer_details == nullptr)
+			{
+				if (detailsBitmap != nullptr)
+				{
+					QImage image = *detailsBitmap->qimage();
+					textureBuffer_details = new VulkanTextureBuffer();
+					textureBuffer_details->createTexture(p->vulkanWindow, image);
+					textureBuffer_details->ensureTexture(p->vulkanWindow->currentCommandBuffer());
+				}
+			}
 
+			if (textureBuffer_spriteSheet == nullptr)
+			{
+				if (spriteSheetBitmap != nullptr)
+				{
+					QImage image = *spriteSheetBitmap->qimage();
+					textureBuffer_spriteSheet = new VulkanTextureBuffer();
+					textureBuffer_spriteSheet->createTexture(p->vulkanWindow, image);
+					textureBuffer_spriteSheet->ensureTexture(p->vulkanWindow->currentCommandBuffer());
+				}
+			}
 
-    if (window != nullptr && window->isInit())
-    {
-        VkPipelineCache pipelineCache = window->getPipelineCache();
-
-
-        if (pipelineCache == VK_NULL_HANDLE)
-        {
-            return;
-        }
-
-        VkDevice dev = window->device();
-
-        if (pipeline == VK_NULL_HANDLE)
-        {
-            if (textureBuffer_details == nullptr)
-            {
-                if (detailsBitmap != nullptr)
-                {
-                    QImage image = *detailsBitmap->qimage();
-                    textureBuffer_details = new VulkanTextureBuffer();
-                    textureBuffer_details->createTexture(window, image);
-                }
-            }
-
-            if (textureBuffer_spriteSheet == nullptr)
-            {
-                if (spriteSheetBitmap != nullptr)
-                {
-                    QImage image = *spriteSheetBitmap->qimage();
-                    textureBuffer_spriteSheet = new VulkanTextureBuffer();
-                    textureBuffer_spriteSheet->createTexture(window, image);
-                }
-            }
-
-            if (textureBuffer_lightMap == nullptr)
-            {
-                if (lightMapBitmap != nullptr)
-                {
-                    QImage image = *lightMapBitmap->qimage();
-                    textureBuffer_lightMap = new VulkanTextureBuffer();
-                    textureBuffer_lightMap->createTexture(window, image);
-                }
-            }
+			if (textureBuffer_lightMap == nullptr)
+			{
+				if (lightMapBitmap != nullptr)
+				{
+					QImage image = *lightMapBitmap->qimage();
+					textureBuffer_lightMap = new VulkanTextureBuffer();
+					textureBuffer_lightMap->createTexture(p->vulkanWindow, image);
+					textureBuffer_lightMap->ensureTexture(p->vulkanWindow->currentCommandBuffer());
+				}
+			}
 
 			shaderModule_vs = shader_create(m_devFuncs, dev, path::getShaders() + "PaintVertex.spv");
 
 			shaderModule_fs = shader_create(m_devFuncs, dev, path::getShaders() + "AnimatedPaintFragment.spv");
 
-            VkResult err;
+			VkResult err;
 
 
-            {
-                {
-                    // Sampler.
-                    VkSamplerCreateInfo samplerInfo;
-                    memset(&samplerInfo, 0, sizeof(samplerInfo));
-                    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			{
+				{
+					// Sampler.
+					VkSamplerCreateInfo samplerInfo;
+					memset(&samplerInfo, 0, sizeof(samplerInfo));
+					samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 					samplerInfo.magFilter = VK_FILTER_NEAREST;
 					samplerInfo.minFilter = VK_FILTER_NEAREST;
 					samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -223,154 +208,154 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 
 					err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler_details);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create sampler: %d", err);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create sampler: %d", err);
 
 
 
-                    err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler_lightMap);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create sampler: %d", err);
+					err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler_lightMap);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create sampler: %d", err);
 
 
 					samplerInfo.minLod = 90.0f;
 					samplerInfo.maxLod = 100.0f;
 
-					samplerInfo.maxAnisotropy = 10.f;
+					samplerInfo.maxAnisotropy = 1.f;
 					samplerInfo.anisotropyEnable = VK_FALSE;
 					err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler_spriteSheet);
 					if (err != VK_SUCCESS)
 						qFatal("Failed to create sampler: %d", err);
-                }
+				}
 
 
 
-                const int concurrentFrameCount = window->concurrentFrameCount();
+				const int concurrentFrameCount = p->vulkanWindow->concurrentFrameCount();
 
-                {
-                    // Set up descriptor set and its layout.
+				{
+					// Set up descriptor set and its layout.
 					VkDescriptorPoolSize descPoolSizes[4] = {
-                        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
-                        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
+						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
+						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
 						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) },
 						{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, uint32_t(concurrentFrameCount) },
-                    };
-                    VkDescriptorPoolCreateInfo descPoolInfo;
-                    memset(&descPoolInfo, 0, sizeof(descPoolInfo));
-                    descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+					};
+					VkDescriptorPoolCreateInfo descPoolInfo;
+					memset(&descPoolInfo, 0, sizeof(descPoolInfo));
+					descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 					descPoolInfo.maxSets = 2; //concurrentFrameCount;
-                    descPoolInfo.poolSizeCount = sizeof(descPoolSizes) / sizeof(descPoolSizes[0]);;
-                    descPoolInfo.pPoolSizes = descPoolSizes;
-                    err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create descriptor pool: %d", err);
-                }
+					descPoolInfo.poolSizeCount = sizeof(descPoolSizes) / sizeof(descPoolSizes[0]);;
+					descPoolInfo.pPoolSizes = descPoolSizes;
+					err = m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_descPool);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create descriptor pool: %d", err);
+				}
 
-                {
+				{
 					VkDescriptorSetLayoutBinding layoutBinding[] =
-                    {
-                        {
-                            details_binding, // binding
-                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            1, // descriptorCount
-                            VK_SHADER_STAGE_FRAGMENT_BIT,
-                            &m_sampler_details
-                        },
+					{
+						{
+							details_binding, // binding
+							VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							1, // descriptorCount
+							VK_SHADER_STAGE_FRAGMENT_BIT,
+							&m_sampler_details
+						},
 
 
 
-                        {
-                            spriteSheet_binding, // binding
-                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            1, // descriptorCount
-                            VK_SHADER_STAGE_FRAGMENT_BIT,
-                            &m_sampler_spriteSheet
-                        },
-                        {
-                            lightMap_binding, // binding
-                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            1, // descriptorCount
-                            VK_SHADER_STAGE_FRAGMENT_BIT,
-                            &m_sampler_lightMap
+						{
+							spriteSheet_binding, // binding
+							VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							1, // descriptorCount
+							VK_SHADER_STAGE_FRAGMENT_BIT,
+							&m_sampler_spriteSheet
+						},
+						{
+							lightMap_binding, // binding
+							VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							1, // descriptorCount
+							VK_SHADER_STAGE_FRAGMENT_BIT,
+							&m_sampler_lightMap
 						},
 
 						{
-							vulkanUniform->binding(), // binding
+							p->camera->vulkanUniform->binding(), // binding
 							VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 							1, // descriptorCount
 							VK_SHADER_STAGE_VERTEX_BIT,
 							nullptr
 						}
-                    };
+					};
 
-                    VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
-                        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                        nullptr,
-                        0,
+					VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+						nullptr,
+						0,
 						sizeof(layoutBinding) / sizeof(layoutBinding[0]), // bindingCount
-                        layoutBinding
-                    };
+						layoutBinding
+					};
 
-                    err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create descriptor set layout: %d", err);
-                }
+					err = m_devFuncs->vkCreateDescriptorSetLayout(dev, &descLayoutInfo, nullptr, &m_descSetLayout);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create descriptor set layout: %d", err);
+				}
 
 
-                for (int i = 0; i < concurrentFrameCount; ++i)
-                {
-                    VkDescriptorSetAllocateInfo descSetAllocInfo = {
-                        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                        nullptr,
-                        m_descPool,
+				for (int i = 0; i < concurrentFrameCount; ++i)
+				{
+					VkDescriptorSetAllocateInfo descSetAllocInfo = {
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+						nullptr,
+						m_descPool,
 						1,
-                        &m_descSetLayout
-                    };
-                    err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_descSet[i]);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to allocate descriptor 2 set: %d", err);
+						&m_descSetLayout
+					};
+					err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_descSet[i]);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to allocate descriptor 2 set: %d", err);
 
 					VkWriteDescriptorSet descWrite[4];
-                    memset(descWrite, 0, sizeof(descWrite));
+					memset(descWrite, 0, sizeof(descWrite));
 
-                    VkDescriptorImageInfo descImageInfo_details = {
-                        m_sampler_details,
-                        textureBuffer_details->texView(),
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                    };
+					VkDescriptorImageInfo descImageInfo_details = {
+						m_sampler_details,
+						textureBuffer_details->texView(),
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					};
 
-                    VkDescriptorImageInfo descImageInfo__spriteSheet = {
-                        m_sampler_spriteSheet,
-                        textureBuffer_spriteSheet->texView(),
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                    };
+					VkDescriptorImageInfo descImageInfo__spriteSheet = {
+						m_sampler_spriteSheet,
+						textureBuffer_spriteSheet->texView(),
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					};
 
-                    VkDescriptorImageInfo descImageInfo_lightMap = {
-                        m_sampler_lightMap,
-                        textureBuffer_lightMap->texView(),
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                    };
+					VkDescriptorImageInfo descImageInfo_lightMap = {
+						m_sampler_lightMap,
+						textureBuffer_lightMap->texView(),
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+					};
 
-                    descWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    descWrite[0].dstSet = m_descSet[i];
-                    descWrite[0].dstBinding = details_binding;
-                    descWrite[0].descriptorCount = 1;
-                    descWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    descWrite[0].pImageInfo = &descImageInfo_details;
+					descWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descWrite[0].dstSet = m_descSet[i];
+					descWrite[0].dstBinding = details_binding;
+					descWrite[0].descriptorCount = 1;
+					descWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descWrite[0].pImageInfo = &descImageInfo_details;
 
-                    descWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    descWrite[1].dstSet = m_descSet[i];
-                    descWrite[1].dstBinding = spriteSheet_binding;
-                    descWrite[1].descriptorCount = 1;
-                    descWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    descWrite[1].pImageInfo = &descImageInfo__spriteSheet;
+					descWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descWrite[1].dstSet = m_descSet[i];
+					descWrite[1].dstBinding = spriteSheet_binding;
+					descWrite[1].descriptorCount = 1;
+					descWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descWrite[1].pImageInfo = &descImageInfo__spriteSheet;
 
-                    descWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    descWrite[2].dstSet = m_descSet[i];
-                    descWrite[2].dstBinding = lightMap_binding;
-                    descWrite[2].descriptorCount = 1;
-                    descWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    descWrite[2].pImageInfo = &descImageInfo_lightMap;
+					descWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descWrite[2].dstSet = m_descSet[i];
+					descWrite[2].dstBinding = lightMap_binding;
+					descWrite[2].descriptorCount = 1;
+					descWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descWrite[2].pImageInfo = &descImageInfo_lightMap;
 
 
 					m_devFuncs->vkUpdateDescriptorSets(dev, 3, descWrite, 0, nullptr);
@@ -378,7 +363,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 					{
 						VkDescriptorBufferInfo vertUni;
-						vertUni.buffer = vulkanUniform->buffer();
+						vertUni.buffer = p->camera->vulkanUniform->buffer();
 						vertUni.offset = 0;
 						vertUni.range = 1024;
 
@@ -386,7 +371,7 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 						memset(&descWrite, 0, sizeof(descWrite));
 						descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 						descWrite.dstSet = m_descSet[i];
-						descWrite.dstBinding = vulkanUniform->binding();
+						descWrite.dstBinding = p->camera->vulkanUniform->binding();
 						descWrite.descriptorCount = 1;
 						descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 						descWrite.pBufferInfo = &vertUni;
@@ -397,23 +382,23 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 
 
 
-                {
-                    // Graphics pipeline.
-                    VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-                    memset(&pipelineLayoutInfo, 0, sizeof(pipelineLayoutInfo));
-                    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-                    pipelineLayoutInfo.setLayoutCount = 1;
-                    pipelineLayoutInfo.pSetLayouts = &m_descSetLayout;
+				{
+					// Graphics pipeline.
+					VkPipelineLayoutCreateInfo pipelineLayoutInfo;
+					memset(&pipelineLayoutInfo, 0, sizeof(pipelineLayoutInfo));
+					pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+					pipelineLayoutInfo.setLayoutCount = 1;
+					pipelineLayoutInfo.pSetLayouts = &m_descSetLayout;
 
 					pipelineLayoutInfo.pushConstantRangeCount = sizeof(pushConstantRanges) / sizeof(pushConstantRanges[0]);
 					pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
 
-                    err = m_devFuncs->vkCreatePipelineLayout(dev, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create pipeline layout: %d", err);
-                }
+					err = m_devFuncs->vkCreatePipelineLayout(dev, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create pipeline layout: %d", err);
+				}
 
-                {
+				{
 					VkVertexInputBindingDescription vertexBindingDesc[] = {
 						{
 							0, // binding
@@ -438,179 +423,222 @@ void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
 						}
 					};
 
-                    //3
-                    VkPipelineVertexInputStateCreateInfo vertexInputInfo;
-                    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-                    vertexInputInfo.pNext = nullptr;
-                    vertexInputInfo.flags = 0;
-                    vertexInputInfo.vertexBindingDescriptionCount = sizeof(vertexBindingDesc) / sizeof(vertexBindingDesc[0]);
-                    vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc;
-                    vertexInputInfo.vertexAttributeDescriptionCount = sizeof(vertexAttrDesc) / sizeof(vertexAttrDesc[0]);
-                    vertexInputInfo.pVertexAttributeDescriptions = vertexAttrDesc;
+					//3
+					VkPipelineVertexInputStateCreateInfo vertexInputInfo;
+					vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+					vertexInputInfo.pNext = nullptr;
+					vertexInputInfo.flags = 0;
+					vertexInputInfo.vertexBindingDescriptionCount = sizeof(vertexBindingDesc) / sizeof(vertexBindingDesc[0]);
+					vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc;
+					vertexInputInfo.vertexAttributeDescriptionCount = sizeof(vertexAttrDesc) / sizeof(vertexAttrDesc[0]);
+					vertexInputInfo.pVertexAttributeDescriptions = vertexAttrDesc;
 
 
 
-                    //4
-                    VkGraphicsPipelineCreateInfo pipelineInfo;
-                    memset(&pipelineInfo, 0, sizeof(pipelineInfo));
-                    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+					//4
+					VkGraphicsPipelineCreateInfo pipelineInfo;
+					memset(&pipelineInfo, 0, sizeof(pipelineInfo));
+					pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
-                    //5
-                    VkPipelineShaderStageCreateInfo shaderStages[2];
-                    init_shader_stage_vertex(&shaderStages[0], shaderModule_vs);
-                    init_shader_stage_fragment(&shaderStages[1], shaderModule_fs);
+					//5
+					VkPipelineShaderStageCreateInfo shaderStages[2];
+					init_shader_stage_vertex(&shaderStages[0], shaderModule_vs);
+					init_shader_stage_fragment(&shaderStages[1], shaderModule_fs);
 					pipelineInfo.stageCount = sizeof(shaderStages) / sizeof(shaderStages[0]);
-                    pipelineInfo.pStages = shaderStages;
-                    pipelineInfo.pVertexInputState = &vertexInputInfo;
+					pipelineInfo.pStages = shaderStages;
+					pipelineInfo.pVertexInputState = &vertexInputInfo;
 
 
-                    //6
-                    VkPipelineInputAssemblyStateCreateInfo ia;
-                    memset(&ia, 0, sizeof(ia));
-                    ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-                    ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                    pipelineInfo.pInputAssemblyState = &ia;
+					//6
+					VkPipelineInputAssemblyStateCreateInfo ia;
+					memset(&ia, 0, sizeof(ia));
+					ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+					ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+					pipelineInfo.pInputAssemblyState = &ia;
 
-                    //7
-                    VkPipelineViewportStateCreateInfo vp;
-                    memset(&vp, 0, sizeof(vp));
-                    vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-                    vp.viewportCount = 1;
-                    vp.scissorCount = 1;
-                    pipelineInfo.pViewportState = &vp;
+					//7
+					VkPipelineViewportStateCreateInfo vp;
+					memset(&vp, 0, sizeof(vp));
+					vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+					vp.viewportCount = 1;
+					vp.scissorCount = 1;
+					pipelineInfo.pViewportState = &vp;
 
-                    //8
-                    VkPipelineRasterizationStateCreateInfo rs;
-                    memset(&rs, 0, sizeof(rs));
-                    rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-                    rs.polygonMode = VK_POLYGON_MODE_FILL;
-                    rs.cullMode = VK_CULL_MODE_BACK_BIT;
-                    rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-                    rs.lineWidth = 10.0f;
-                    pipelineInfo.pRasterizationState = &rs;
+					//8
+					VkPipelineRasterizationStateCreateInfo rs;
+					memset(&rs, 0, sizeof(rs));
+					rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+					rs.polygonMode = VK_POLYGON_MODE_FILL;
+					rs.cullMode = VK_CULL_MODE_BACK_BIT;
+					rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+					rs.lineWidth = 1.0f;
+					pipelineInfo.pRasterizationState = &rs;
 
-                    //9
-                    VkPipelineMultisampleStateCreateInfo ms;
-                    memset(&ms, 0, sizeof(ms));
-                    ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-                    ms.rasterizationSamples = window->sampleCountFlagBits();
-                    ms.sampleShadingEnable = VK_FALSE;
-                    ms.alphaToCoverageEnable = VK_TRUE;
-                    //ms.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
-                    pipelineInfo.pMultisampleState = &ms;
-
-
-
-                    //10
-                    VkPipelineDepthStencilStateCreateInfo ds;
-                    memset(&ds, 0, sizeof(ds));
-                    ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-                    ds.depthTestEnable = VK_TRUE;
-                    ds.depthWriteEnable = VK_TRUE;
-                    ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-                    pipelineInfo.pDepthStencilState = &ds;
-
-                    //11
-                    VkPipelineColorBlendStateCreateInfo cb;
-                    memset(&cb, 0, sizeof(cb));
-                    cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-                    VkPipelineColorBlendAttachmentState att;
-                    memset(&att, 0, sizeof(att));
-                    att.colorWriteMask = 0xF;
-                    cb.attachmentCount = 1;
-                    cb.pAttachments = &att;
-                    pipelineInfo.pColorBlendState = &cb;
-
-                    //12
-                    VkDynamicState dynEnable[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-                    VkPipelineDynamicStateCreateInfo dyn;
-                    memset(&dyn, 0, sizeof(dyn));
-                    dyn.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-                    dyn.dynamicStateCount = sizeof(dynEnable) / sizeof(VkDynamicState);
-                    dyn.pDynamicStates = dynEnable;
-                    pipelineInfo.pDynamicState = &dyn;
-                    pipelineInfo.layout = pipelineLayout;
-                    pipelineInfo.renderPass = window->defaultRenderPass();
-
-                    //13
-                    VkResult err = m_devFuncs->vkCreateGraphicsPipelines(dev,
-                                                                         pipelineCache,
-                                                                         1,
-                                                                         &pipelineInfo,
-                                                                         nullptr,
-                                                                         &pipeline);
-
-                    if (err != VK_SUCCESS)
-                        qFatal("Failed to create graphics pipeline: %d", err);
+					//9
+					VkPipelineMultisampleStateCreateInfo ms;
+					memset(&ms, 0, sizeof(ms));
+					ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+					ms.rasterizationSamples = p->vulkanWindow->sampleCountFlagBits();
+					ms.sampleShadingEnable = VK_FALSE;
+					ms.alphaToCoverageEnable = VK_TRUE;
+					//ms.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+					pipelineInfo.pMultisampleState = &ms;
 
 
-                }
 
-            }
+					//10
+					VkPipelineDepthStencilStateCreateInfo ds;
+					memset(&ds, 0, sizeof(ds));
+					ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+					ds.depthTestEnable = VK_TRUE;
+					ds.depthWriteEnable = VK_TRUE;
+					ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+					pipelineInfo.pDepthStencilState = &ds;
+
+					//11
+					VkPipelineColorBlendStateCreateInfo cb;
+					memset(&cb, 0, sizeof(cb));
+					cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+					VkPipelineColorBlendAttachmentState att;
+					memset(&att, 0, sizeof(att));
+					att.colorWriteMask = 0xF;
+					cb.attachmentCount = 1;
+					cb.pAttachments = &att;
+					pipelineInfo.pColorBlendState = &cb;
+
+					//12
+					VkDynamicState dynEnable[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+					VkPipelineDynamicStateCreateInfo dyn;
+					memset(&dyn, 0, sizeof(dyn));
+					dyn.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+					dyn.dynamicStateCount = sizeof(dynEnable) / sizeof(VkDynamicState);
+					dyn.pDynamicStates = dynEnable;
+					pipelineInfo.pDynamicState = &dyn;
+					pipelineInfo.layout = pipelineLayout;
+					pipelineInfo.renderPass = p->vulkanWindow->defaultRenderPass();
+
+					//13
+					VkResult err = m_devFuncs->vkCreateGraphicsPipelines(dev,
+																		 pipelineCache,
+																		 1,
+																		 &pipelineInfo,
+																		 nullptr,
+																		 &pipeline);
+
+					if (err != VK_SUCCESS)
+						qFatal("Failed to create graphics pipeline: %d", err);
 
 
-        }
+				}
 
-        if (textureBuffer_details == nullptr)
-        {
-            qDebug() << "error vulkanTextureBuffer";
-        }
-    }
+			}
+
+
+		}
+
+		if (textureBuffer_details == nullptr)
+		{
+			qDebug() << "error vulkanTextureBuffer";
+		}
+	}
+}
+
+
+void PaintMaterialVulkan::reset()
+{
+	pipeline = VK_NULL_HANDLE;
+}
+
+
+void PaintMaterialVulkan::drawOpaque(VulkanWindow *window,
+                                     Camera3D *camera,
+                                     VertexBufferResource *vertexBuffer,
+                                     IndexBufferResource *indexBuffer,
+                                     int firstIndex,
+                                     int numTriangles,
+                                     Object3D *object,
+                                     float uvTransformConst[8],
+									 float fragConst[8])
+{
+    VulkanFunctions *m_devFuncs = window->getFunctions();
+
+
+	VkCommandBuffer cb = window->currentCommandBuffer();
+
+	m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 
 	{
-        VkCommandBuffer cb = window->currentCommandBuffer();
+		CONST_VERTEX p;
 
-        m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		for (int i = 0; i < 12; i++)
+			p.transform[i] = object->transformConst[i];
 
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_TRANSFORM_OFFSET, CONST_TRANSFORM_SIZE, object->transformConst);
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_TRANSFORM_OFFSET, CONST_UV_TRANSFORM_SIZE, uvTransformConst);
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_FRAG_OFFSET, CONST_FRAG_SIZE, fragConst);
+		p.uvCorrection[0] = 1;
+		p.uvCorrection[1] = 1;
+		p.uvCorrection[2] = 0;
+		p.uvCorrection[3] = 0;
+
+		for (int i = 0; i < 8; i++)
+			p.uvTransform[i] = uvTransformConst[i];
 
 
-		float uvCorrection[4] = {1, 1, 0, 1};
+		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_VERTEX_OFFSET, 96, &p);
+	}
 
-		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, CONST_UV_CORRECTION_OFFSET, CONST_UV_CORRECTION_SIZE, uvCorrection);
+	{
+		CONST_FRAGMEN p;
+		p.frag[0] = fragConst[0];
+		p.frag[1] = fragConst[1];
+		p.frag[2] = fragConst[2];
+		p.frag[3] = fragConst[3];
+		p.frag[4] = fragConst[4];
+		p.frag[5] = fragConst[5];
+		p.frag[6] = fragConst[6];
+		p.frag[7] = fragConst[7];
+
+		m_devFuncs->vkCmdPushConstants(cb, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, CONST_FRAGMENT_OFFSET, 32, &p);
+	}
 
 
-		uint32_t frameUniOffset = 0;
-		uint32_t frameUniOffsets[] = {frameUniOffset};
 
-        m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-											&m_descSet[window->currentFrame()], 1, frameUniOffsets);
+	uint32_t frameUniOffset = 0;
+	uint32_t frameUniOffsets[] = {frameUniOffset};
 
-        VkBuffer buffer = vertexBuffer->vk_buffer->get();
-		VkBuffer buffer2 = vulkanUniform->buffer();
+	m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+										&m_descSet[window->currentFrame()], 1, frameUniOffsets);
 
-        VkDeviceSize vbOffset = 0;
-        m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
-		m_devFuncs->vkCmdBindVertexBuffers(cb, 1, 1, &buffer2, &vbOffset);
+	VkBuffer buffer = vertexBuffer->vk_buffer->get();
+	VkBuffer buffer2 = camera->vulkanUniform->buffer();
 
-		if (indexBuffer != nullptr)
-		{
-			m_devFuncs->vkCmdBindIndexBuffer(cb, indexBuffer->vk_buffer->get(), 0, VK_INDEX_TYPE_UINT16);
+	VkDeviceSize vbOffset = 0;
+	m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &buffer, &vbOffset);
+	m_devFuncs->vkCmdBindVertexBuffers(cb, 1, 1, &buffer2, &vbOffset);
 
-			m_devFuncs->vkCmdDrawIndexed(cb,
-										 numTriangles * 3, //indexCount
-										 1, //instanceCount
-										 firstIndex, //firstIndex
-										 0, //vertexOffset
-										 0); //firstInstance
-		}
-		else
-		{
-			m_devFuncs->vkCmdDraw(cb,
-								  numTriangles * 3, //vertexCount
-								  1, //instanceCount
-								  firstIndex, //firstIndex
-								  0); //firstInstance
-		}
-    }
+	if (indexBuffer != nullptr)
+	{
+		m_devFuncs->vkCmdBindIndexBuffer(cb, indexBuffer->vk_buffer->get(), 0, VK_INDEX_TYPE_UINT16);
+
+		m_devFuncs->vkCmdDrawIndexed(cb,
+									 numTriangles * 3, //indexCount
+									 1, //instanceCount
+									 firstIndex, //firstIndex
+									 0, //vertexOffset
+									 0); //firstInstance
+	}
+	else
+	{
+		m_devFuncs->vkCmdDraw(cb,
+							  numTriangles * 3, //vertexCount
+							  1, //instanceCount
+							  firstIndex, //firstIndex
+							  0); //firstInstance
+	}
 }
 
 
 void PaintMaterialVulkan::setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource)
 {
-    (void)textureResource;
-    //_textureResource = textureResource;
+	(void)textureResource;
+	//_textureResource = textureResource;
 }

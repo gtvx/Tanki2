@@ -102,7 +102,7 @@ void MapTexturesBuilder::complete()
 }
 
 
-QVector<BitmapData*> MapTexturesBuilder::getTextures()
+QVector<std::shared_ptr<BitmapData>> MapTexturesBuilder::getTextures()
 {
 	return this->textures;
 }

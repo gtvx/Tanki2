@@ -21,14 +21,14 @@
 
 
 
-std::shared_ptr<TextureMaterial> new_TextureMaterial(int id, BitmapData *bitmap, bool repeat, bool smooth, int _mipMapping, double resolution)
+std::shared_ptr<TextureMaterial> new_TextureMaterial(int id, std::shared_ptr<BitmapData> bitmap, bool repeat, bool smooth, int _mipMapping, double resolution)
 {
 	return std::make_shared<TextureMaterial>(id, bitmap, repeat, smooth, _mipMapping, resolution);
 }
 
 
 
-TextureMaterial::TextureMaterial(int id, BitmapData *bitmap, bool repeat, bool smooth, int _mipMapping, double resolution)
+TextureMaterial::TextureMaterial(int id, std::shared_ptr<BitmapData> bitmap, bool repeat, bool smooth, int _mipMapping, double resolution)
 {
 	this->repeat = repeat;
 	this->smooth = smooth;
@@ -72,7 +72,7 @@ TextureMaterial::TextureMaterial(int id, BitmapData *bitmap, bool repeat, bool s
 	//float_array_set_4(fragmentConst,  0, 0, 0, 1);
 
 
-	vulkan = new  TextureMaterialVulkan;
+	vulkan = new TextureMaterialVulkan;
 
 
 	if (this->textureResource != nullptr)
@@ -82,18 +82,24 @@ TextureMaterial::TextureMaterial(int id, BitmapData *bitmap, bool repeat, bool s
 }
 
 
-void TextureMaterial::draw(Camera3D *param1, Canvas *param2, Shared<Face> param3, double param4)
+void TextureMaterial::init(DrawInitParams *p)
 {
-	(void)param1;
-	(void)param2;
-	(void)param3;
+	vulkan->init(p);
+}
+
+
+void TextureMaterial::draw(Camera3D *camera, Canvas *canvas, Shared<Face> face, double param4)
+{
+	(void)camera;
+	(void)canvas;
+	(void)face;
 	(void)param4;
 
 	qDebug("TextureMaterial::draw");
 }
 
 
-BitmapData* TextureMaterial::texture()
+std::shared_ptr<BitmapData> TextureMaterial::texture()
 {
 	if (this->textureResource != nullptr)
 	{
@@ -104,9 +110,9 @@ BitmapData* TextureMaterial::texture()
 }
 
 
-void TextureMaterial::setTexture(BitmapData *bitmapData)
+void TextureMaterial::setTexture(std::shared_ptr<BitmapData> bitmapData)
 {
-	BitmapData *current = this->texture();
+	std::shared_ptr<BitmapData> current = this->texture();
 
 	if (bitmapData != current)
 	{
@@ -218,8 +224,7 @@ void TextureMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   p->decal,
-					   p->vulkanUniform);
+					   p->decal);
 }
 
 
@@ -253,8 +258,7 @@ void TextureMaterial::drawTransparentVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   p->decal,
-					   p->vulkanUniform);
+					   p->decal);
 }
 
 

@@ -7,17 +7,9 @@ layout(location = 0) out vec4 fragColor;
 layout(binding = 1) uniform sampler2D tex;
 
 layout(push_constant) uniform PC {
-    vec4 c0; //0 transformConst
-    vec4 c1; //16 transformConst
-    vec4 c2; //32 transformConst
-
-    vec4 c4; //48 uvCorrection
-
-    vec4 c14; //64 uvTransformConst
-    vec4 c15; //80 uvTransformConst
-
-    vec4 fc0; //96 colorConst
-    vec4 fc1; //112 colorConst
+    layout(offset = 192)
+    vec4 fc0; //colorConst
+    vec4 fc1; //colorConst
 } pc;
 
 

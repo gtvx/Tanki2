@@ -3,6 +3,7 @@
 
 #include <QVector>
 #include "game/alternativa/utils/textureutils/ITextureConstructorListener.h"
+#include <memory>
 
 class TextureMaterialRegistry;
 class TexturedPropsCollection;
@@ -21,13 +22,13 @@ class MapTexturesBuilder : public ITextureConstructorListener
 	QVector<TexturedPropsCollection*> texturedPropsCollections;
 	QVector<IndexedTextureConstructor*> *constructors;
 
-	QVector<BitmapData*> textures;
+	QVector<std::shared_ptr<BitmapData>> textures;
 
 public:
 	MapTexturesBuilder(TextureMaterialRegistry *materialRegistry, int maxBatchSize);
 
 	void run(const QVector<TexturedPropsCollection *> &list);
-	QVector<BitmapData*> getTextures();
+	QVector<std::shared_ptr<BitmapData>> getTextures();
 
 private:
 	void createTextureConstructors();

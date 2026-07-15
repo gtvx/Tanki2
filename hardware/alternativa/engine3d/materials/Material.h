@@ -11,7 +11,7 @@ class Canvas;
 class Face;
 class QString;
 class DrawParams;
-
+class DrawInitParams;
 
 class Material : public std::enable_shared_from_this<Material>
 {
@@ -24,6 +24,8 @@ public:
 	std::string name;
 	bool useVerticesNormals;
 	double alphaTestThreshold;
+
+	virtual void init(DrawInitParams*) = 0;
 
 	virtual void draw(Camera3D*, Canvas*, Shared<Face>, double);
 

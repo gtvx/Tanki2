@@ -1,6 +1,6 @@
 #include "MaterialEntry.h"
 
-MaterialEntry::MaterialEntry(BitmapData *keyData, std::shared_ptr<TextureMaterial> material)
+MaterialEntry::MaterialEntry(std::shared_ptr<BitmapData> keyData, std::shared_ptr<TextureMaterial> material)
 {
 	this->keyData_bitmapData = keyData;
 	this->texture = nullptr;

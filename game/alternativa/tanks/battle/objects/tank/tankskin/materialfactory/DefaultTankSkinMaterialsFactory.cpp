@@ -27,12 +27,12 @@ SkinMaterials* DefaultTankSkinMaterialsFactory::createSkinMaterials(TankSkin *ta
 	TurretSkinCacheItem *turret_cache = tankSkin->getTurretDescriptor();
 
 	Long hull_id = hull_cache->partId;
-	BitmapData *hull_bitmap_lightmap = hull_cache->lightmap;
-	BitmapData *hull_bitmap_details = hull_cache->details;
+	std::shared_ptr<BitmapData> hull_bitmap_lightmap = hull_cache->lightmap;
+	std::shared_ptr<BitmapData> hull_bitmap_details = hull_cache->details;
 
 	Long turret_id = turret_cache->partId;
-	BitmapData *turret_bitmap_lightmap = turret_cache->lightmap;
-	BitmapData *turret_bitmap_details = turret_cache->details;
+	std::shared_ptr<BitmapData> turret_bitmap_lightmap = turret_cache->lightmap;
+	std::shared_ptr<BitmapData> turret_bitmap_details = turret_cache->details;
 
 	std::shared_ptr<TextureMaterial> hull_texture_material;
 	std::shared_ptr<TextureMaterial> turret_texture_material;
@@ -65,12 +65,12 @@ SkinMaterials *DefaultTankSkinMaterialsFactory::createDeadSkinMaterials(TankSkin
 	TurretSkinCacheItem *turret_cache = tankSkin->getTurretDescriptor();
 
 	Long hull_id = hull_cache->partId;
-	BitmapData *hull_bitmap_lightmap = hull_cache->lightmap;
-	BitmapData *hull_bitmap_details = hull_cache->details;
+	std::shared_ptr<BitmapData> hull_bitmap_lightmap = hull_cache->lightmap;
+	std::shared_ptr<BitmapData> hull_bitmap_details = hull_cache->details;
 
 	Long turret_id = turret_cache->partId;
-	BitmapData *turret_bitmap_lightmap = turret_cache->lightmap;
-	BitmapData *turret_bitmap_details = turret_cache->details;
+	std::shared_ptr<BitmapData> turret_bitmap_lightmap = turret_cache->lightmap;
+	std::shared_ptr<BitmapData> turret_bitmap_details = turret_cache->details;
 
 	std::shared_ptr<TextureMaterial> _local_11 = textureMaterialRegistry->getPaint(resource, hull_bitmap_lightmap, hull_bitmap_details, hull_id);
 	std::shared_ptr<TextureMaterial> _local_12 = textureMaterialRegistry->getPaint(resource, turret_bitmap_lightmap, turret_bitmap_details, turret_id);

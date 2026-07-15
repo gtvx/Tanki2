@@ -17,11 +17,11 @@ class DecalFactory
 public:
 	DecalFactory(CollisionDetector *collisionDetector);
 	std::shared_ptr<Decal> createDecal(const Vector3 *_arg_1,
-									   const Vector3 *_arg_2,
-									   double _arg_3,
+									   const Vector3 *projectionOrigin,
+									   double radius,
 									   std::shared_ptr<TextureMaterial> material,
-									   KDContainer *_arg_5,
-									   const RotationState *_arg_6);
+									   KDContainer *container,
+									   const RotationState *state);
 };
 
 #endif // DECALFACTORY_H

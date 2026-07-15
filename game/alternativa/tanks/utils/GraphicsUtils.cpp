@@ -54,7 +54,7 @@ public static function createFilteredImage(_arg_1:BitmapData, _arg_2:BitmapFilte
 }
 #endif
 
-std::shared_ptr<TextureAnimation> GraphicsUtils::getTextureAnimation(TextureMaterialRegistry *_arg_1, BitmapData *_arg_2, int _arg_3, int _arg_4, int _arg_5, bool _arg_6)
+std::shared_ptr<TextureAnimation> GraphicsUtils::getTextureAnimation(TextureMaterialRegistry *_arg_1, std::shared_ptr<BitmapData> _arg_2, int _arg_3, int _arg_4, int _arg_5, bool _arg_6)
 {
 	(void)_arg_6;
 
@@ -64,7 +64,7 @@ std::shared_ptr<TextureAnimation> GraphicsUtils::getTextureAnimation(TextureMate
 }
 
 
-QVector<UVFrame*> GraphicsUtils::getUVFramesFromTexture(BitmapData *_arg_1, int _arg_2, int _arg_3, int _arg_4)
+QVector<UVFrame*> GraphicsUtils::getUVFramesFromTexture(std::shared_ptr<BitmapData> _arg_1, int _arg_2, int _arg_3, int _arg_4)
 {
 
 	int _local_5 = _arg_1->width();

@@ -22,8 +22,8 @@ TextureMaterialRegistryBase::TextureMaterialRegistryBase(TextureMaterialFactory 
 
 
 std::shared_ptr<AnimatedPaintMaterial> TextureMaterialRegistryBase::getAnimatedPaint(MultiframeTextureResource *_arg_1,
-																					 BitmapData *lightMapBitmap,
-																					 BitmapData *texture,
+																					 std::shared_ptr<BitmapData> lightMapBitmap,
+																					 std::shared_ptr<BitmapData> texture,
 																					 const Long &_arg_4)
 {
 	this->materialStat->requestCount++;
@@ -38,7 +38,7 @@ std::shared_ptr<AnimatedPaintMaterial> TextureMaterialRegistryBase::getAnimatedP
 	}
 
 
-	BitmapData *data = _arg_1->getData();
+	std::shared_ptr<BitmapData> data = _arg_1->getData();
 
 	int _local_6 = int(data->width() / _arg_1->getFrameWidth());
 	int _local_7 = int(data->height() / _arg_1->getFrameHeight());
@@ -62,8 +62,8 @@ std::shared_ptr<AnimatedPaintMaterial> TextureMaterialRegistryBase::getAnimatedP
 
 
 std::shared_ptr<PaintMaterial> TextureMaterialRegistryBase::getPaint(TextureResource *_arg_1,
-																	 BitmapData *_arg_2,
-																	 BitmapData *_arg_3,
+																	 std::shared_ptr<BitmapData> _arg_2,
+																	 std::shared_ptr<BitmapData> _arg_3,
 																	 const Long &_arg_4)
 {
 	qDebug("TextureMaterialRegistryBase::getPaint");
@@ -88,7 +88,7 @@ std::shared_ptr<PaintMaterial> TextureMaterialRegistryBase::getPaint(TextureReso
 }
 
 
-std::shared_ptr<TextureMaterial> TextureMaterialRegistryBase::getMaterial(BitmapData *bitmapData, bool v)
+std::shared_ptr<TextureMaterial> TextureMaterialRegistryBase::getMaterial(std::shared_ptr<BitmapData> bitmapData, bool v)
 {
 	if (bitmapData == nullptr)
 	{
@@ -129,7 +129,7 @@ void TextureMaterialRegistryBase::clear()
 }
 
 
-MaterialEntry* TextureMaterialRegistryBase::getOrCreateEntry(BitmapData *bitmapData, bool _arg_2)
+MaterialEntry* TextureMaterialRegistryBase::getOrCreateEntry(std::shared_ptr<BitmapData> bitmapData, bool _arg_2)
 {
 
 	MaterialEntry* materialEntry = this->bitmapData_entryForTexture[bitmapData];
@@ -144,11 +144,11 @@ MaterialEntry* TextureMaterialRegistryBase::getOrCreateEntry(BitmapData *bitmapD
 }
 
 
-std::shared_ptr<TextureMaterial> TextureMaterialRegistryBase::createMaterial(BitmapData *bitmapData, bool _arg_2)
+std::shared_ptr<TextureMaterial> TextureMaterialRegistryBase::createMaterial(std::shared_ptr<BitmapData> bitmapData, bool _arg_2)
 {
 	//qDebug() << "TextureMaterialRegistryBase::createMaterial" << bitmapData;
 
-	BitmapData *_local_3 = this->getTexture(bitmapData, _arg_2);
+	std::shared_ptr<BitmapData> _local_3 = this->getTexture(bitmapData, _arg_2);
 	std::shared_ptr<TextureMaterial> _local_4 = this->materialFactory->createTextureMaterial(_local_3, this->mipMappingEnabled);
 	this->materials.append(_local_4);
 	this->materialStat->createCount++;
@@ -156,7 +156,7 @@ std::shared_ptr<TextureMaterial> TextureMaterialRegistryBase::createMaterial(Bit
 }
 
 
-MaterialEntry* TextureMaterialRegistryBase::createMaterialEntry(BitmapData *_arg_1, std::shared_ptr<TextureMaterial> _arg_2)
+MaterialEntry* TextureMaterialRegistryBase::createMaterialEntry(std::shared_ptr<BitmapData> _arg_1, std::shared_ptr<TextureMaterial> _arg_2)
 {
 	MaterialEntry *_local_3 = new MaterialEntry(_arg_1, _arg_2);
 	this->bitmapData_entryForTexture[_arg_1] = _local_3;
@@ -165,7 +165,7 @@ MaterialEntry* TextureMaterialRegistryBase::createMaterialEntry(BitmapData *_arg
 }
 
 
-BitmapData* TextureMaterialRegistryBase::getTexture(BitmapData *bitmapData, bool _arg_2)
+std::shared_ptr<BitmapData> TextureMaterialRegistryBase::getTexture(std::shared_ptr<BitmapData> bitmapData, bool _arg_2)
 {
 	(void)bitmapData;
 	(void)_arg_2;

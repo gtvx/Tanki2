@@ -5,7 +5,7 @@
 #include <QDebug>
 
 
-BitmapTextureResource::BitmapTextureResource(BitmapData *bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures, bool calculateMipMapsUsingGPU)
+BitmapTextureResource::BitmapTextureResource(std::shared_ptr<BitmapData> bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures, bool calculateMipMapsUsingGPU)
 {
 
 	this->referencesCount = 1;

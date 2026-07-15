@@ -6,7 +6,7 @@
 #include "flash/display/BitmapData.h"
 
 
-BitmapData* getDetails(const QByteArray &details, const QByteArray &alpha);
+std::shared_ptr<BitmapData> getDetails(const QByteArray &details, const QByteArray &alpha);
 
 
 static const QString TARA_FILE = "image.tara";
@@ -42,7 +42,7 @@ double MultiframeTextureResource::getFps()
 	return this->multiframeResourceInfo->fps();
 }
 
-BitmapData* MultiframeTextureResource::getData()
+std::shared_ptr<BitmapData> MultiframeTextureResource::getData()
 {
 	return this->_data;
 }
@@ -123,7 +123,7 @@ void  MultiframeTextureResource::buildFrames(const QByteArray &data)
 	}
 	else
 	{
-		this->_data = new BitmapData();
+		this->_data = std::make_shared<BitmapData>();
 		this->_data->loadFromData(diffuse_data);
 	}
 

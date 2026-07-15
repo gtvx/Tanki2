@@ -31,18 +31,18 @@ DecalFactory::DecalFactory(CollisionDetector *collisionDetector)
 }
 
 
-std::shared_ptr<Decal> DecalFactory::createDecal(const Vector3 *_arg_1,
-												 const Vector3 *_arg_2,
-												 double _arg_3,
+std::shared_ptr<Decal> DecalFactory::createDecal(const Vector3 *position,
+												 const Vector3 *projectionOrigin,
+												 double radius,
 												 std::shared_ptr<TextureMaterial> material,
-												 KDContainer *_arg_5,
+												 KDContainer *container,
 												 const RotationState *state)
 {
 	Vector3 direction;
 
-	direction.diff(_arg_1, _arg_2);
+	direction.diff(position, projectionOrigin);
 
-	double _local_7 = direction.length() + 200;
+	double length = direction.length() + 200;
 
 	direction.normalize();
 
@@ -56,19 +56,18 @@ std::shared_ptr<Decal> DecalFactory::createDecal(const Vector3 *_arg_1,
 
 	Vector3 origins[5];
 
+	origins[4].copy(projectionOrigin);
 
-	origins[4].copy(_arg_2);
-
-	origins[0].copy(_arg_2);
+	origins[0].copy(projectionOrigin);
 	origins[0].addScaled(50, &right);
 
-	origins[1].copy(_arg_2);
+	origins[1].copy(projectionOrigin);
 	origins[1].addScaled(50, &up);
 
-	origins[2].copy(_arg_2);
+	origins[2].copy(projectionOrigin);
 	origins[2].addScaled(-50, &right);
 
-	origins[3].copy(_arg_2);
+	origins[3].copy(projectionOrigin);
 	origins[3].addScaled(-50, &up);
 
 	normal.reset(0, 0, 0);
@@ -79,7 +78,7 @@ std::shared_ptr<Decal> DecalFactory::createDecal(const Vector3 *_arg_1,
 
 		RayHit rayHit;
 
-		if (this->collisionDetector->raycastStatic(origin, &direction, CollisionGroup::STATIC, _local_7, nullptr, &rayHit))
+		if (this->collisionDetector->raycastStatic(origin, &direction, CollisionGroup::STATIC, length, nullptr, &rayHit))
 		{
 			normal.add(&rayHit.normal);
 		}
@@ -89,11 +88,11 @@ std::shared_ptr<Decal> DecalFactory::createDecal(const Vector3 *_arg_1,
 
 	Vector3D position3D, normal3D;
 
-	BattleUtils::copyToVector3D(_arg_1, &position3D);
+	BattleUtils::copyToVector3D(position, &position3D);
 
 	BattleUtils::copyToVector3D(&normal, &normal3D);
 
-	double _local_9 = getRotation(state);
+	double rotation = getRotation(state);
 
-	return _arg_5->createDecal(&position3D, &normal3D, _arg_3, _local_9, ANGLE_LIMIT, 300, material);
+	return container->createDecal(&position3D, &normal3D, radius, rotation, ANGLE_LIMIT, 50, material); //300
 }

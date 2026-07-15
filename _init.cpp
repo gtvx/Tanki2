@@ -217,7 +217,7 @@ std::shared_ptr<InitTankPart> InitTankPart_getAdapt(IGameObject *object,
 
 
 
-BitmapData* getDetails(const QByteArray &details, const QByteArray &alpha)
+std::shared_ptr<BitmapData> getDetails(const QByteArray &details, const QByteArray &alpha)
 {
 	QImage image_details;
 	image_details.loadFromData(details);
@@ -225,7 +225,7 @@ BitmapData* getDetails(const QByteArray &details, const QByteArray &alpha)
 	QImage image_details_alpha;
 	image_details_alpha.loadFromData(alpha);
 
-	BitmapData *result_details = new BitmapData(image_details.width(), image_details.height(), true);
+	auto result_details = std::make_shared<BitmapData>(image_details.width(), image_details.height(), true);
 
 	QImage *result = result_details->qimage();
 
@@ -366,7 +366,7 @@ private:
 
 		resurce->textures[DETAILS] = getDetails(details, details_alpha);
 
-		BitmapData *bitmap_lightmap = new BitmapData;
+		std::shared_ptr<BitmapData> bitmap_lightmap = std::make_shared<BitmapData>();
 		bitmap_lightmap->loadFromData(File::read(filename_lightmap));
 		resurce->textures[LIGHTMAP] = bitmap_lightmap;
 
@@ -423,12 +423,12 @@ private:
 
 
 			TextureResource *res_2 = new TextureResource(resourceInfo_2);
-			//res_2->data = new BitmapData(150, 150, false, 0x50C050);
-			res_2->data = new BitmapData();
+
+			res_2->data = std::make_shared<BitmapData>();
 			res_2->data->loadFromData(File::read(path::getResources() + "/decal/plasma.png"));
 
 			TextureResource *res_3 = new TextureResource(resourceInfo_3);
-			res_3->data = new BitmapData(100, 100, false, 0xFFFFFF);
+			res_3->data = std::make_shared<BitmapData>(100, 100, false, 0xFFFFFF);
 
 
 

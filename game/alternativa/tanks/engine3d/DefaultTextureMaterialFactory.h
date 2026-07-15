@@ -6,7 +6,7 @@
 class DefaultTextureMaterialFactory : public TextureMaterialFactory
 {
 public:
-	std::shared_ptr<TextureMaterial> createTextureMaterial(BitmapData*, bool) override;
+	std::shared_ptr<TextureMaterial> createTextureMaterial(std::shared_ptr<BitmapData>, bool) override;
 };
 
 #endif // DEFAULTTEXTUREMATERIALFACTORY_H

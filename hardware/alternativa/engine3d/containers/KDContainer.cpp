@@ -2809,7 +2809,6 @@ std::shared_ptr<Decal> KDContainer::createDecal(const Vector3D *_arg_1,
 												double _arg_6,
 												std::shared_ptr<Material> _arg_7)
 {
-
 	std::shared_ptr<Decal> result = new_Decal();
 
 	Decal *_local_8 = result.get();
@@ -2921,7 +2920,6 @@ std::shared_ptr<Decal> KDContainer::createDecal(const Vector3D *_arg_1,
 		{
 			_local_15 = _local_16->cameraZ;
 		}
-		//_local_16 = _local_16->next;
 	}
 
 	_local_8->invertMatrix();

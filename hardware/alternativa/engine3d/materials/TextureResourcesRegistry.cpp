@@ -1,8 +1,9 @@
 #include "TextureResourcesRegistry.h"
 #include "hardware/alternativa/gfx/core/BitmapTextureResource.h"
-#include <QHash>
+#include "qhash_shared_ptr.h"
 
-static QHash<BitmapData*, std::shared_ptr<BitmapTextureResource>> texture2Resource;
+
+static QHash<std::shared_ptr<BitmapData>, std::shared_ptr<BitmapTextureResource>> texture2Resource;
 
 
 TextureResourcesRegistry::TextureResourcesRegistry()
@@ -11,7 +12,7 @@ TextureResourcesRegistry::TextureResourcesRegistry()
 }
 
 
-BitmapTextureResource* TextureResourcesRegistry::getTextureResourcePtr(BitmapData *bitmapData, bool _arg_2, bool _arg_3, bool _arg_4)
+BitmapTextureResource* TextureResourcesRegistry::getTextureResourcePtr(std::shared_ptr<BitmapData> bitmapData, bool _arg_2, bool _arg_3, bool _arg_4)
 {
 	if (texture2Resource.contains(bitmapData))
 	{
@@ -26,7 +27,7 @@ BitmapTextureResource* TextureResourcesRegistry::getTextureResourcePtr(BitmapDat
 }
 
 
-std::shared_ptr<BitmapTextureResource> TextureResourcesRegistry::getTextureResourceS(BitmapData *bitmapData, bool _arg_2, bool _arg_3, bool _arg_4)
+std::shared_ptr<BitmapTextureResource> TextureResourcesRegistry::getTextureResourceS(std::shared_ptr<BitmapData> bitmapData, bool _arg_2, bool _arg_3, bool _arg_4)
 {
 	if (texture2Resource.contains(bitmapData))
 	{
@@ -43,7 +44,7 @@ std::shared_ptr<BitmapTextureResource> TextureResourcesRegistry::getTextureResou
 
 void TextureResourcesRegistry::releaseTextureResources()
 {
-	QHashIterator<BitmapData*, std::shared_ptr<BitmapTextureResource>> i(texture2Resource);
+	QHashIterator<std::shared_ptr<BitmapData>, std::shared_ptr<BitmapTextureResource>> i(texture2Resource);
 
 	while (i.hasNext())
 	{
@@ -52,7 +53,7 @@ void TextureResourcesRegistry::releaseTextureResources()
 }
 
 
-void TextureResourcesRegistry::release(BitmapData *bitmapData)
+void TextureResourcesRegistry::release(std::shared_ptr<BitmapData> bitmapData)
 {
 	if (texture2Resource.contains(bitmapData))
 	{

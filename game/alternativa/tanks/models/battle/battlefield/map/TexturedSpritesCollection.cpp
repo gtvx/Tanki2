@@ -26,7 +26,7 @@ TextureByteData* TexturedSpritesCollection::getTextureData()
 
 void TexturedSpritesCollection::setMaterial(std::shared_ptr<TextureMaterial> textureMaterial)
 {
-	BitmapData *bitmapData = textureMaterial->texture();
+	std::shared_ptr<BitmapData> bitmapData = textureMaterial->texture();
 
 	for (std::shared_ptr<Sprite3D> sprite3D : this->sprites)
 	{

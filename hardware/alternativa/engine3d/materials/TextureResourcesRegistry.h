@@ -11,9 +11,9 @@ class TextureResourcesRegistry
 public:
 	TextureResourcesRegistry();
 	static void releaseTextureResources();
-	static void release(BitmapData *bitmapData);
-	static BitmapTextureResource* getTextureResourcePtr(BitmapData *bitmapData, bool _arg_2, bool _arg_3, bool _arg_4);
-	static std::shared_ptr<BitmapTextureResource> getTextureResourceS(BitmapData *bitmapData, bool _arg_2, bool _arg_3, bool _arg_4);
+	static void release(std::shared_ptr<BitmapData> bitmapData);
+	static BitmapTextureResource* getTextureResourcePtr(std::shared_ptr<BitmapData> bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures, bool calculateMipMapsUsingGPU);
+	static std::shared_ptr<BitmapTextureResource> getTextureResourceS(std::shared_ptr<BitmapData> bitmapData, bool mipMapping, bool stretchNotPowerOf2Textures, bool calculateMipMapsUsingGPU);
 };
 
 #endif // TEXTURERESOURCESREGISTRY_H

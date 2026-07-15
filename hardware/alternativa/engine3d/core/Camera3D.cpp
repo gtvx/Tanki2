@@ -286,6 +286,47 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 		object->draw(this);
 	}
 
+	vulkanWindow->renderBegin1();
+
+	{
+		{
+			DrawInitParams p;
+			p.camera = this;
+			p.decal = false;
+			p.vulkanWindow = vulkanWindow;
+
+			for (int i = 0; i < this->opaqueCount; i++)
+			{
+				this->opaqueMaterials[i]->init(&p);
+			}
+		}
+
+		{
+			DrawInitParams p;
+			p.camera = this;
+			p.decal = false;
+			p.vulkanWindow = vulkanWindow;
+
+			for (int i = 0; i < this->transparentCount; i++)
+			{
+				this->transparentFaceLists[i]->material->init(&p);
+			}
+		}
+
+		{
+			DrawInitParams p;
+			p.camera = this;
+			p.decal = true;
+			p.vulkanWindow = vulkanWindow;
+
+			for (int i = 0; i < this->decalsCount; i++)
+			{
+				this->decals[i]->faceList->material->init(&p);
+			}
+		}
+	}
+
+	vulkanWindow->renderBegin2();
 
 	for (int i = 0; i < this->opaqueCount; i++)
 	{
@@ -299,7 +340,6 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 		p.firstIndex =  this->opaqueFirstIndexes[i];
 		p.numTriangles = this->opaqueNumsTriangles[i];
 		p.object =  this->opaqueObjects[i];
-		p.vulkanUniform = vulkanUniform;
 
 		material->drawOpaqueVulkan(&p);
 	}
@@ -458,7 +498,6 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 			p.numTriangles = decal->numTriangles;
 			p.object =  decal;
 			p.decal = true;
-			p.vulkanUniform = vulkanUniform;
 
 			decal->faceList->material->drawOpaqueVulkan(&p);
 
@@ -471,6 +510,8 @@ void Camera3D::renderVulkan(VulkanWindow *vulkanWindow)
 	this->transparentCount = 0;
 
 	deferredDestroy();
+
+	vulkanWindow->renderEnd();
 }
 
 
@@ -2215,7 +2256,6 @@ void Camera3D::drawTransparentList(VulkanWindow *vulkanWindow, Shared<Face> face
 		p.firstIndex =  0;
 		p.numTriangles = triangles_count;
 		p.object =  object;
-		p.vulkanUniform = vulkanUniform;
 
 		material->drawTransparentVulkan(&p);
 	}

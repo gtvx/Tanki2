@@ -18,7 +18,7 @@ EffectsMaterialRegistry *TwinsSFXModel::materialRegistry = new DefaultEffectsMat
 
 
 
-static std::shared_ptr<TextureMaterial> getMuzzleFlashMaterial(BitmapData *bitmapData)
+static std::shared_ptr<TextureMaterial> getMuzzleFlashMaterial(std::shared_ptr<BitmapData> bitmapData)
 {
 	std::shared_ptr<TextureMaterial> material = TwinsSFXModel::materialRegistry->getMaterial(bitmapData);
 	material->resolution = (TwinsEffects::FLASH_SIZE / bitmapData->height());

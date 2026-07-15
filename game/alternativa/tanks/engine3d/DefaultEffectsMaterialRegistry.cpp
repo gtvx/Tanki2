@@ -9,7 +9,7 @@ DefaultEffectsMaterialRegistry::DefaultEffectsMaterialRegistry() :
 }
 
 
-BitmapData* DefaultEffectsMaterialRegistry::getTexture(BitmapData *bitmapData, bool _arg_2)
+std::shared_ptr<BitmapData> DefaultEffectsMaterialRegistry::getTexture(std::shared_ptr<BitmapData> bitmapData, bool _arg_2)
 {
 	(void)_arg_2;
 	return bitmapData;
@@ -17,8 +17,8 @@ BitmapData* DefaultEffectsMaterialRegistry::getTexture(BitmapData *bitmapData, b
 
 
 std::shared_ptr<AnimatedPaintMaterial> DefaultEffectsMaterialRegistry::getAnimatedPaint(MultiframeTextureResource *_arg_1,
-																						BitmapData *lightMapBitmap,
-																						BitmapData *texture,
+																						std::shared_ptr<BitmapData> lightMapBitmap,
+																						std::shared_ptr<BitmapData> texture,
 																						const Long &_arg_4)
 {
 	return TextureMaterialRegistryBase::getAnimatedPaint(_arg_1, lightMapBitmap, texture, _arg_4);
@@ -26,15 +26,15 @@ std::shared_ptr<AnimatedPaintMaterial> DefaultEffectsMaterialRegistry::getAnimat
 
 
 std::shared_ptr<PaintMaterial> DefaultEffectsMaterialRegistry::getPaint(TextureResource *_arg_1,
-																		BitmapData *_arg_2,
-																		BitmapData *_arg_3,
+																		std::shared_ptr<BitmapData> _arg_2,
+																		std::shared_ptr<BitmapData> _arg_3,
 																		const Long &_arg_4)
 {
 	return TextureMaterialRegistryBase::getPaint(_arg_1, _arg_2, _arg_3, _arg_4);
 }
 
 
-std::shared_ptr<TextureMaterial> DefaultEffectsMaterialRegistry::getMaterial(BitmapData *bitmap, bool v)
+std::shared_ptr<TextureMaterial> DefaultEffectsMaterialRegistry::getMaterial(std::shared_ptr<BitmapData> bitmap, bool v)
 {
 	return TextureMaterialRegistryBase::getMaterial(bitmap, v);
 }

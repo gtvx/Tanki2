@@ -18,6 +18,8 @@ class VulkanFunctions
 public:
     VulkanFunctions();
 
+	PFN_vkVoidFunction VKAPI_CALL (*vkGetInstanceProcAddr)(VkInstance instance, const char* pName);
+
 
     VkResult VKAPI_CALL (*vkEnumerateInstanceLayerProperties)(uint32_t* pPropertyCount, VkLayerProperties* pProperties);
 
@@ -62,7 +64,7 @@ public:
 
     void VKAPI_CALL (*vkGetPhysicalDeviceQueueFamilyProperties)(VkPhysicalDevice physicalDevice, uint32_t* pQueueFamilyPropertyCount, VkQueueFamilyProperties* pQueueFamilyProperties);
 
-
+	VkResult VKAPI_CALL (*vkGetPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
 
 	void VKAPI_CALL (*vkCmdBeginRenderPass)(VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo *pRenderPassBegin, VkSubpassContents contents);
 
@@ -90,7 +92,7 @@ public:
 
 	VkResult VKAPI_CALL (*vkEndCommandBuffer)(VkCommandBuffer commandBuffer);
 
-
+	VkResult VKAPI_CALL (*vkResetCommandBuffer)(VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags);
 
 	VkResult VKAPI_CALL (*vkQueueSubmit)(VkQueue queue, uint32_t submitCount, const VkSubmitInfo *pSubmits, VkFence fence);
 

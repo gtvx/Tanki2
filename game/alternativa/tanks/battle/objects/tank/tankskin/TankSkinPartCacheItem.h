@@ -17,8 +17,8 @@ public:
 	BitmapData* createTexture(BitmapData*);
 
 	Long partId;
-	BitmapData *details;
-	BitmapData *lightmap;
+	std::shared_ptr<BitmapData> details;
+	std::shared_ptr<BitmapData> lightmap;
 
 protected:
 	std::shared_ptr<Mesh> initMesh(std::shared_ptr<Mesh> param1);

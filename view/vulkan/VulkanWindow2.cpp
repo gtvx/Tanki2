@@ -22,6 +22,9 @@ void VulkanWindow2::initVulkan(VulkanWindow *vulkanWindow)
 
 void VulkanWindow2::render(VulkanWindow *vulkanWindow)
 {
+	if (!vulkanWindow->isRenderEnable())
+		return;
+
 	camera->renderVulkan(vulkanWindow);
 }
 

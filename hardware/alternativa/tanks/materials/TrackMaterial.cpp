@@ -9,14 +9,14 @@
 bool isLoadResourceVulkan(VulkanWindow *window, GfxResource *resource);
 
 
-std::shared_ptr<TrackMaterial> new_TrackMaterial(BitmapData *bitmap)
+std::shared_ptr<TrackMaterial> new_TrackMaterial(std::shared_ptr<BitmapData> bitmap)
 {
 	return std::make_shared<TrackMaterial>(bitmap);
 }
 
 
 
-TrackMaterial::TrackMaterial(BitmapData *bitmap) :
+TrackMaterial::TrackMaterial(std::shared_ptr<BitmapData> bitmap) :
 	TextureMaterial(12, bitmap, true)
 {
 	uvMatrixProvider = new UVMatrixProvider;
@@ -29,6 +29,12 @@ TrackMaterial::TrackMaterial(BitmapData *bitmap) :
 
 		setTextureResource(this->textureResource);
 	}
+}
+
+
+void TrackMaterial::init(DrawInitParams *p)
+{
+	vulkan->init(p);
 }
 
 
@@ -74,8 +80,7 @@ void TrackMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->firstIndex,
 					   p->numTriangles,
 					   p->object,
-					   this->uvTransformConst,
-					   p->vulkanUniform);
+					   this->uvTransformConst);
 }
 
 

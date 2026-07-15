@@ -3,6 +3,7 @@
 
 #include "game/alternativa/tanks/battle/BattleService.h"
 #include "game/alternativa/tanks/battle/BattleRunner.h"
+#include <memory>
 
 class MapBuilder;
 class FollowCameraController;
@@ -44,7 +45,7 @@ public:
 	BattleView* getBattleView() override;
 	void setCameraPosition() override;
 	ObjectPool* getObjectPool() override;
-	void setBillboardImage(BitmapData *bitmapData);
+	void setBillboardImage(std::shared_ptr<BitmapData> bitmapData);
 
 private:
 	void tick();

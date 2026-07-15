@@ -24,9 +24,6 @@ layout(push_constant) uniform PC {
 
     vec4 c14; //64 uvTransformConst
     vec4 c15; //80 uvTransformConst
-
-    vec4 fc0; //96 colorConst
-    vec4 fc1; //112 colorConst
 } pc;
 
 

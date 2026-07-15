@@ -43,7 +43,7 @@ public:
 		ResourceInfo *resourceInfo = new ResourceInfo(10, Long(10, 1), Long(1, 1), false);
 
 		res = new TextureResource(resourceInfo);
-		res->data = new BitmapData(1, 1, false, 0x00FF00);
+		res->data = std::make_shared<BitmapData>(1, 1, false, 0x00FF00);
 
 		multiframe = new MultiframeTextureResource(resourceInfo);
 

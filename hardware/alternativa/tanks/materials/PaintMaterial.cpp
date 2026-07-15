@@ -15,9 +15,9 @@
 bool isLoadResourceVulkan(VulkanWindow *window, GfxResource *resource);
 
 
-std::shared_ptr<PaintMaterial> new_PaintMaterial(BitmapData *spriteSheetBitmap,
-												 BitmapData *lightMapBitmap,
-												 BitmapData *texture,
+std::shared_ptr<PaintMaterial> new_PaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+												 std::shared_ptr<BitmapData> lightMapBitmap,
+												 std::shared_ptr<BitmapData> texture,
 												 int mipMapping)
 {
 	return std::make_shared<PaintMaterial>(spriteSheetBitmap, lightMapBitmap, texture, mipMapping);
@@ -25,9 +25,9 @@ std::shared_ptr<PaintMaterial> new_PaintMaterial(BitmapData *spriteSheetBitmap,
 
 
 
-PaintMaterial::PaintMaterial(BitmapData *spriteSheetBitmap,
-							 BitmapData *lightMapBitmap,
-							 BitmapData *texture,
+PaintMaterial::PaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+							 std::shared_ptr<BitmapData> lightMapBitmap,
+							 std::shared_ptr<BitmapData> texture,
 							 int mipMapping) :
 	TextureMaterial(10, texture, true, true, mipMapping)
 {
@@ -46,17 +46,23 @@ PaintMaterial::PaintMaterial(BitmapData *spriteSheetBitmap,
 
 	_mipMapping = this->spriteSheetResource->getMipMapping() ? (int)MipMapping::PER_PIXEL : 0;
 
-	std::shared_ptr<BitmapData> s_spriteSheetBitmap = std::make_shared<BitmapData>();
-	s_spriteSheetBitmap->copy(spriteSheetBitmap);
+	//std::shared_ptr<BitmapData> s_spriteSheetBitmap = std::make_shared<BitmapData>();
+	//s_spriteSheetBitmap->copy(spriteSheetBitmap);
 
-	std::shared_ptr<BitmapData> s_lightMapBitmap = std::make_shared<BitmapData>();
-	s_lightMapBitmap->copy(lightMapBitmap);
+	//std::shared_ptr<BitmapData> s_lightMapBitmap = std::make_shared<BitmapData>();
+	//s_lightMapBitmap->copy(lightMapBitmap);
 
-	std::shared_ptr<BitmapData> s_texture = std::make_shared<BitmapData>();
-	s_texture->copy(texture);
+	//std::shared_ptr<BitmapData> s_texture = std::make_shared<BitmapData>();
+	//s_texture->copy(texture);
 
 
-	vulkan = new PaintMaterialVulkan(s_spriteSheetBitmap, s_lightMapBitmap, s_texture);
+	vulkan = new PaintMaterialVulkan(spriteSheetBitmap, lightMapBitmap, texture);
+}
+
+
+void PaintMaterial::init(DrawInitParams *p)
+{
+	vulkan->init(p);
 }
 
 
@@ -89,8 +95,7 @@ void PaintMaterial::drawOpaqueVulkan(DrawParams *p)
 					   p->numTriangles,
 					   p->object,
 					   this->uvTransformConst,
-					   this->fragConst,
-					   p->vulkanUniform);
+					   this->fragConst);
 }
 
 
@@ -123,8 +128,7 @@ void PaintMaterial::drawTransparentVulkan(DrawParams *p)
 					   p->numTriangles,
 					   p->object,
 					   this->uvTransformConst,
-					   this->fragConst,
-					   p->vulkanUniform);
+					   this->fragConst);
 
 }
 

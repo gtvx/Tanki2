@@ -51,7 +51,6 @@
 #include "vulkan/VulkanFunctions.h"
 #include "file.h"
 #include "hardware/alternativa/engine3d/core/View.h"
-#include "vulkan/EVulkanWindow.h"
 #include "entrance/platform/client/fp10/core/type/IGameObject.h"
 #include "game/alternativa/tanks/models/tank/ITankModel.h"
 #include "game/projects/tanks/client/battlefield/types/TankState.h"
@@ -237,7 +236,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 		VkInstance vkInstance = VK_createInstance(vulkanFunctions);
 
-		VulkanWindow2 *vulkanWindow = new VulkanWindow2();
+		vulkanWindow = new VulkanWindow2();
 
 		vulkanWindow->setVulkanInstance(vkInstance);
 		vulkanWindow->setFunctions(vulkanFunctions);
@@ -257,6 +256,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 		battlefieldModel->getBattleScene3D()->setRenderVulkan(vulkanWindow);
+
+
+
+
 	}
 
 	timer->setInterval(16);
@@ -323,6 +326,9 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 	//widget_vulkan->setGeometry(width / 2, 0, width / 2, height);
 	widget_vulkan->setGeometry(0, 0, width, height);
+
+
+	widget_vulkan->resize(width, height);
 }
 
 
@@ -332,4 +338,17 @@ void MainWindow::showEvent(QShowEvent *event)
 	int width = ui->widget->width();
 	int height = ui->widget->height();
 	widget_vulkan->setGeometry(0, 0, width, height);
+
+	if (!vulkanWindow->isInit())
+		vulkanWindow->init();
+
+	vulkanWindow->renderEnable(true);
 }
+
+
+void MainWindow::hideEvent(QHideEvent *event)
+{
+	(void)event;
+	vulkanWindow->renderEnable(false);
+}
+

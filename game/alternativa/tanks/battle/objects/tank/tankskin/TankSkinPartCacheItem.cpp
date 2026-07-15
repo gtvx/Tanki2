@@ -10,17 +10,17 @@
 static const QString DETAILS = "details.png";
 static const QString LIGHTMAP = "lightmap.jpg";
 
-static QHash<QString, BitmapData*> stubBitmaps;
+static QHash<QString, std::shared_ptr<BitmapData>> stubBitmaps;
 
 
 
-BitmapData* getStubBitmapData(const QString &name, uint _arg_2)
+std::shared_ptr<BitmapData> getStubBitmapData(const QString &name, uint _arg_2)
 {
-	BitmapData *bitmapData = stubBitmaps[name];
+	std::shared_ptr<BitmapData> bitmapData = stubBitmaps[name];
 
 	if (bitmapData == nullptr)
 	{
-		bitmapData = new StubBitmapData(_arg_2);
+		bitmapData = std::make_shared<StubBitmapData>(_arg_2);
 		stubBitmaps[name] = bitmapData;
 	}
 

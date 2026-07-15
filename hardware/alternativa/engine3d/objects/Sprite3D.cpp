@@ -82,7 +82,7 @@ void Sprite3D::updateBounds(Object3D *_arg_1, Object3D *_arg_2)
 	if (((this->autoSize) && Material_isType<TextureMaterial>(this->material.get())))
 	{
 		TextureMaterial *material = (TextureMaterial*)this->material.get();
-		BitmapData *_local_11 = material->texture();
+		std::shared_ptr<BitmapData> _local_11 = material->texture();
 		if (_local_11 != nullptr)
 		{
 			_local_3 = (_local_11->width() * (this->bottomRightU - this->topLeftU));
@@ -392,7 +392,7 @@ Shared<Face> Sprite3D::calculateFace(Camera3D *camera)
 
 	if (((this->autoSize) && (Material_isType<TextureMaterial>(this->material.get()))))
 	{
-		BitmapData *_local_25 = std::dynamic_pointer_cast<TextureMaterial>(this->material)->texture();
+		std::shared_ptr<BitmapData> _local_25 = std::dynamic_pointer_cast<TextureMaterial>(this->material)->texture();
 		if (_local_25 != nullptr)
 		{
 			_local_13 = (_local_25->width() * _local_15);

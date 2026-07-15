@@ -14,7 +14,7 @@ class Tanks3DSResource : public Resource
 {
 public:
 
-	QHash<QString, BitmapData*> textures;
+	QHash<QString, std::shared_ptr<BitmapData>> textures;
 
 	Tanks3DSResource(ResourceInfo*);
 	QVector<std::shared_ptr<Object3D>> objects;

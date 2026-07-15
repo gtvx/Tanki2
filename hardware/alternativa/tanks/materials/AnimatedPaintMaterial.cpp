@@ -8,14 +8,14 @@
 #include "getTimer.h"
 
 
-std::shared_ptr<AnimatedPaintMaterial> new_AnimatedPaintMaterial(BitmapData *spriteSheetBitmap,
-																  BitmapData *lightMapBitmap,
-																  BitmapData *texture,
-																  int numFramesX,
-																  int numFramesY,
-																  int fps,
-																  int numFrames,
-																  int mipMapping)
+std::shared_ptr<AnimatedPaintMaterial> new_AnimatedPaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+																 std::shared_ptr<BitmapData> lightMapBitmap,
+																 std::shared_ptr<BitmapData> texture,
+																 int numFramesX,
+																 int numFramesY,
+																 int fps,
+																 int numFrames,
+																 int mipMapping)
 {
 	return std::make_shared<AnimatedPaintMaterial>(spriteSheetBitmap,
 												   lightMapBitmap,
@@ -29,9 +29,9 @@ std::shared_ptr<AnimatedPaintMaterial> new_AnimatedPaintMaterial(BitmapData *spr
 
 
 
-AnimatedPaintMaterial::AnimatedPaintMaterial(BitmapData *spriteSheetBitmap,
-											 BitmapData *lightMapBitmap,
-											 BitmapData *texture,
+AnimatedPaintMaterial::AnimatedPaintMaterial(std::shared_ptr<BitmapData> spriteSheetBitmap,
+											 std::shared_ptr<BitmapData> lightMapBitmap,
+											 std::shared_ptr<BitmapData> texture,
 											 int numFramesX,
 											 int numFramesY,
 											 int fps,
@@ -57,6 +57,12 @@ AnimatedPaintMaterial::AnimatedPaintMaterial(BitmapData *spriteSheetBitmap,
 
 
 	float_array_set_8(fragConst, 0, 0.5, 1, 2, this->frameWidth, this->frameHeight, 0, 0);
+}
+
+
+void AnimatedPaintMaterial::init(DrawInitParams *p)
+{
+	PaintMaterial::init(p);
 }
 
 

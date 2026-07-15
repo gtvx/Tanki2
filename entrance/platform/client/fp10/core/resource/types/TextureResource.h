@@ -2,13 +2,14 @@
 #define TEXTURERESOURCE_H
 
 #include "../Resource.h"
+#include <memory>
 
 class BitmapData;
 
 class TextureResource : public Resource
 {
 public:
-	BitmapData *data;
+	std::shared_ptr<BitmapData> data;
 
 	TextureResource(ResourceInfo *resourceInfo);
 };

@@ -23,6 +23,12 @@ FillMaterial::FillMaterial(int color, double alpha, double lineThickness, int li
 }
 
 
+void FillMaterial::init(DrawInitParams*)
+{
+
+}
+
+
 void FillMaterial::draw(Camera3D *param1, Canvas *param2, Shared<Face> param3, double)
 {
 	qDebug("FillMaterial::draw");

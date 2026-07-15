@@ -50,10 +50,13 @@ bool VK_VertexBuffer3D::init(VulkanFunctions *m_devFuncs,
 		return false;
 	}
 
+	VkMemoryRequirements uniMemReq;
+	m_devFuncs->vkGetBufferMemoryRequirements(dev, buffer, &uniMemReq);
+
 	VkMemoryAllocateInfo memAllocInfo = {
 		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		nullptr,
-		SizeToLock,
+		uniMemReq.size,
 		hostVisibleMemoryIndex
 	};
 

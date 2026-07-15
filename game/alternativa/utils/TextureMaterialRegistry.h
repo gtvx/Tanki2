@@ -14,9 +14,9 @@ class PaintMaterial;
 class TextureMaterialRegistry
 {
 public:
-	virtual std::shared_ptr<AnimatedPaintMaterial> getAnimatedPaint(MultiframeTextureResource*, BitmapData*, BitmapData*, const Long&) = 0;
-	virtual std::shared_ptr<PaintMaterial> getPaint(TextureResource*, BitmapData*, BitmapData*, const Long&) = 0;
-	virtual std::shared_ptr<TextureMaterial> getMaterial(BitmapData*, bool = true) = 0;
+	virtual std::shared_ptr<AnimatedPaintMaterial> getAnimatedPaint(MultiframeTextureResource*, std::shared_ptr<BitmapData>, std::shared_ptr<BitmapData>, const Long&) = 0;
+	virtual std::shared_ptr<PaintMaterial> getPaint(TextureResource*, std::shared_ptr<BitmapData>, std::shared_ptr<BitmapData>, const Long&) = 0;
+	virtual std::shared_ptr<TextureMaterial> getMaterial(std::shared_ptr<BitmapData>, bool = true) = 0;
 	virtual void addMaterial(std::shared_ptr<TextureMaterial>) = 0;
 	virtual void releaseMaterial(std::shared_ptr<TextureMaterial>) = 0;
 	virtual void setMipMapping(bool) = 0;

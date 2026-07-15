@@ -55,6 +55,8 @@ bool VulkanFunctions::load()
         return false;
     }
 
+	library.resolve("vkGetInstanceProcAddr", &vkGetInstanceProcAddr);
+
 
     library.resolve("vkEnumerateInstanceLayerProperties", &vkEnumerateInstanceLayerProperties);
     library.resolve("vkEnumerateInstanceExtensionProperties", &vkEnumerateInstanceExtensionProperties);
@@ -84,7 +86,7 @@ bool VulkanFunctions::load()
     library.resolve("vkGetPhysicalDeviceSurfaceCapabilitiesKHR", &vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
     library.resolve("vkGetPhysicalDeviceSurfaceSupportKHR", &vkGetPhysicalDeviceSurfaceSupportKHR);
     library.resolve("vkGetPhysicalDeviceQueueFamilyProperties", &vkGetPhysicalDeviceQueueFamilyProperties);
-
+	library.resolve("vkGetPhysicalDeviceSurfacePresentModesKHR", &vkGetPhysicalDeviceSurfacePresentModesKHR);
 
     library.resolve("vkCmdBeginRenderPass", &vkCmdBeginRenderPass);
     library.resolve("vkCmdEndRenderPass", &vkCmdEndRenderPass);
@@ -99,7 +101,7 @@ bool VulkanFunctions::load()
     library.resolve("vkCmdDrawIndexed", &vkCmdDrawIndexed);
     library.resolve("vkBeginCommandBuffer", &vkBeginCommandBuffer);
     library.resolve("vkEndCommandBuffer", &vkEndCommandBuffer);
-
+	library.resolve("vkResetCommandBuffer", &vkResetCommandBuffer);
 
     library.resolve("vkQueueSubmit", &vkQueueSubmit);
     library.resolve("vkQueuePresentKHR", &vkQueuePresentKHR);

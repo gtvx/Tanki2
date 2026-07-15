@@ -32,7 +32,7 @@ void Billboards::add(std::shared_ptr<Mesh> mesh)
 }
 
 
-void Billboards::setImage(BitmapData *bitmapData)
+void Billboards::setImage(std::shared_ptr<BitmapData> bitmapData)
 {
 	this->billboardImage = bitmapData;
 	this->updateMaterial();

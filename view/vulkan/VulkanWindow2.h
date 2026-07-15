@@ -1,13 +1,13 @@
 #ifndef VULKANWINDOW2_H
 #define VULKANWINDOW2_H
 
-#include "vulkan/EVulkanWindow.h"
+#include "vulkan/LVulkanWindow.h"
 
 class BattlefieldModel;
 class GameCamera;
 class BattleInputService;
 
-class VulkanWindow2 : public EVulkanWindow
+class VulkanWindow2 : public LVulkanWindow
 {
 	BattlefieldModel *battlefieldModel;
 	GameCamera *camera;

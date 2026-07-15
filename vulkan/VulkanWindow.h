@@ -23,8 +23,11 @@ public:
     virtual int currentFrame() = 0;
     //virtual const QList<int> supportedSampleCounts() = 0;
     virtual bool isDebugEnabled() = 0;
-
-	virtual void render1() = 0;
+	virtual void renderEnable(bool enable) = 0;
+	virtual bool isRenderEnable() = 0;
+	virtual bool renderBegin1() = 0;
+	virtual bool renderBegin2() = 0;
+	virtual void renderEnd() = 0;
 };
 
 #endif // VULKANWINDOW_H

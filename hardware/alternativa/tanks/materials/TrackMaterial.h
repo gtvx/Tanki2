@@ -13,7 +13,7 @@ public:
 	UVMatrixProvider *uvMatrixProvider;
 	TrackMaterialVulkan *vulkan;
 
-	TrackMaterial(BitmapData *texture);
+	TrackMaterial(std::shared_ptr<BitmapData> texture);
 
 	void update();
 
@@ -21,8 +21,9 @@ public:
 	void drawOpaqueVulkan(DrawParams *p) override;
 	void setMipMapping(int value); //override
 	void setTextureResource(std::shared_ptr<BitmapTextureResource> &textureResource) override;
+	void init(DrawInitParams*) override;
 };
 
-std::shared_ptr<TrackMaterial> new_TrackMaterial(BitmapData *bitmap);
+std::shared_ptr<TrackMaterial> new_TrackMaterial(std::shared_ptr<BitmapData> bitmap);
 
 #endif // TRACKMATERIAL_H
