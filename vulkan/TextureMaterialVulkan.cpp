@@ -169,7 +169,7 @@ void TextureMaterialVulkan::init(DrawInitParams *p)
 						samplerInfo.mipLodBias = 1.0f;
 						samplerInfo.anisotropyEnable = VK_FALSE;   // редко нужен для 2D overlay
 						samplerInfo.maxAnisotropy = 1.0f;
-						samplerInfo.compareEnable = VK_TRUE;
+						samplerInfo.compareEnable = VK_FALSE;
 						samplerInfo.compareOp = VK_COMPARE_OP_EQUAL;
 						samplerInfo.minLod = 0.0f;
 						samplerInfo.maxLod = 1.0f;                  // запретить выбор мипов если их нет

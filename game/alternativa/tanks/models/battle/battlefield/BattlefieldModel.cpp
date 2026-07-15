@@ -236,6 +236,7 @@ ObjectPool* BattlefieldModel::getObjectPool()
 	return this->objectPool;
 }
 
+
 void BattlefieldModel::setFollowCameraState(const Vector3 *position, const Vector3 *direction)
 {
 	this->followCameraController->setCurrentState(position, direction);

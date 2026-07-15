@@ -14,6 +14,7 @@ void Matrix::identity()
 	this->ty = 0;
 }
 
+
 void Matrix::translate(double dx, double dy)
 {
 	_dx += dx;
@@ -21,6 +22,7 @@ void Matrix::translate(double dx, double dy)
 	//_dx += (dx * _m11) + (dy * _m21);
 	//_dy += (dy * _m22) + (dx * _m12);
 }
+
 
 //radian
 void Matrix::rotate(double a)
@@ -37,6 +39,7 @@ void Matrix::rotate(double a)
 	_m22 = tm22;
 }
 
+
 void Matrix::scale(double sx, double sy)
 {
 	_m11 *= sx;
@@ -45,11 +48,13 @@ void Matrix::scale(double sx, double sy)
 	_m22 *= sy;
 }
 
+
 void Matrix::transformPoint(const Point *in, Point *out) const
 {
 	out->x = this->_dx + (in->x*_m11 + in->y*_m21);
 	out->y = this->_dy + (in->y*_m22 + in->x*_m12);
 }
+
 
 QString Matrix::toString() const
 {

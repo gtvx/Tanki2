@@ -17,6 +17,7 @@ double Vector3D::getLength() const
 	return MyMath::sqrt(r);
 }
 
+
 double Vector3D::normalize()
 {
 	double len = this->getLength();
@@ -26,6 +27,7 @@ double Vector3D::normalize()
 	this->z = this->z * lenInv;
 	return len;
 }
+
 
 QString Vector3D::toString() const
 {

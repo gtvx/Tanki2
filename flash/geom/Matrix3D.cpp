@@ -12,6 +12,7 @@ void Matrix3D::identity()
 		0, 0, 0, 1);
 }
 
+
 void Matrix3D::append(const Matrix3D& lhs, bool m33)
 {
 	double r00 = this->rawData[0];
@@ -87,6 +88,7 @@ void Matrix3D::append(const Matrix3D& lhs, bool m33)
 		this->rawData[15] = r03 * l30 + r13 * l31 + r23 * l32 + r33 * l33;
 	}
 }
+
 
 void Matrix3D::decompose(Matrix3DComposeParams &params, Matrix3DOrientation orientationStyle) const
 {
@@ -197,7 +199,6 @@ void Matrix3D::decompose(Matrix3DComposeParams &params, Matrix3DOrientation orie
 }
 
 
-
 bool Matrix3D::recompose(const Matrix3DComposeParams &params, Matrix3DOrientation orientationStyle)
 {
 	float scaleX = params.scaling.x, scaleY = params.scaling.y, scaleZ = params.scaling.z;
@@ -270,6 +271,7 @@ bool Matrix3D::recompose(const Matrix3DComposeParams &params, Matrix3DOrientatio
 	return true;
 }
 
+
 void Matrix3D::appendRotation(double degrees, const Vector3D *axis)
 {
 	Matrix3D matrix;
@@ -307,6 +309,7 @@ void Matrix3D::getAxisRotation(double x, double y, double z, double degrees, Mat
 	result->rawData[6] = tmp1 + tmp2;
 }
 
+
 void Matrix3D::appendTranslation(double x, double y, double z)
 {
 	rawData[12] += x;
@@ -326,5 +329,3 @@ QString Matrix3D::toString() const
 			number(this->m20) + " " + number(this->m21) + " " + number(this->m22) + " " + number(this->m23) + "\n" +
 			number(this->m30) + " " + number(this->m31) + " " + number(this->m32) + " " + number(this->m33);
 }
-
-
